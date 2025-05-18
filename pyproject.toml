@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "hudoc"
+version = "0.1.0"
+description = "CLI tool for downloading ECHR and GREVIO HUDOC documents"
+authors = ["evid <95282593+evidlabel@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["hudoc", "echr", "grevio", "rss", "document"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.32.3"
+beautifulsoup4 = "^4.12.3"
+
+[tool.poetry.scripts]
+hudoc = "hudoc.cli:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry-core"
