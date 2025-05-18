@@ -1,0 +1,9 @@
+<rss version="2.0">
+    <channel>
+        <item>
+            <title>Test Report</title>
+            <link>http://hudoc.grevio.coe.int/eng#{"greviosectionid":["TEST-2023-1"]}</link>
+            <description>Test Description</description>
+        </item>
+    </channel>
+</rss>

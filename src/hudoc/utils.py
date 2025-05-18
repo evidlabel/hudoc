@@ -41,7 +41,7 @@ def get_document_text(doc_id, base_url, library):
             text_lines.append(text)
 
     # Join paragraphs with double newlines for readability
-    text = "\n\n".join(text_lines) or "Mocked content"  # Fallback for tests
+    text = "\n\n".join(text_lines)
     return text if text.strip() else None
 
 def save_text(text, doc_id, title, description, output_dir, hudoc_type):

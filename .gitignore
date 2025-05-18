@@ -1,0 +1,4 @@
+*.txt
+*whl
+*gz
+*pyc
