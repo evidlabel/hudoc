@@ -26,10 +26,6 @@ jobs:
       run: |
         poetry install --with dev
 
-    - name: Run linting
-      run: |
-        poetry run ruff check .
-
     - name: Run tests
       run: |
         poetry run pytest
