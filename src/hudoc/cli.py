@@ -1,8 +1,7 @@
 import argparse
 import logging
 
-from .core import process_rss, process_link
-
+from .core.processor import process_rss, process_link, process_rss_link
 
 def main():
     """Parse CLI arguments and run the HUDOC document downloader."""
@@ -23,7 +22,7 @@ def main():
     )
     input_group.add_argument(
         "--link",
-        help="Single document URL (e.g., http://hudoc.echr.coe.int/eng#{\"itemid\":[\"001-243083\"]})"
+        help="Single document URL (e.g., http://hudoc.echr.coe.int/eng#{\"itemid\":[\"001-243083\"]}) or RSS feed URL"
     )
     parser.add_argument(
         "--output-dir",
@@ -61,6 +60,14 @@ def main():
                 full=args.full,
                 threads=args.threads
             )
+        elif "/app/transform/rss" in args.link:
+            process_rss_link(
+                hudoc_type=args.type,
+                link=args.link,
+                output_dir=args.output_dir,
+                full=args.full,
+                threads=args.threads
+            )
         else:
             process_link(
                 hudoc_type=args.type,
@@ -71,3 +78,6 @@ def main():
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise
+
+if __name__ == "__main__":
+    main()

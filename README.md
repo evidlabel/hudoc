@@ -80,7 +80,14 @@ poetry install --with dev
 
 Run tests with pytest:
 ```bash
-poetry run pytest
+pytest
+```
+
+### Linting
+
+Check code style with flake8:
+```bash
+flake8 src tests
 ```
 
 ### Contributing
