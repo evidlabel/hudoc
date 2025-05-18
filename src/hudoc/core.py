@@ -14,7 +14,15 @@ DEFAULT_LIMIT = 3
 
 
 def parse_rss_file(rss_file, hudoc_type):
-    """Parse RSS file and extract document IDs, titles, and descriptions."""
+    """Parse RSS file and extract document IDs, titles, and descriptions.
+
+    Args:
+        rss_file (str): Path to the RSS file.
+        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+
+    Returns:
+        list: List of dicts with doc_id, title, and description.
+    """
     try:
         tree = ET.parse(rss_file)
         root = tree.getroot()
@@ -44,7 +52,15 @@ def parse_rss_file(rss_file, hudoc_type):
 
 
 def parse_link(link, hudoc_type):
-    """Parse a single document link to extract doc_id, with dummy title and description."""
+    """Parse a single document link to extract doc_id, with dummy title and description.
+
+    Args:
+        link (str): URL of the document.
+        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+
+    Returns:
+        list: List with one dict containing doc_id, title, and description.
+    """
     id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
     try:
         fragment = link.split("#")[1]
@@ -58,7 +74,15 @@ def parse_link(link, hudoc_type):
 
 
 def download_document(item, base_url, library, output_dir, hudoc_type):
-    """Download and save a single document."""
+    """Download and save a single document.
+
+    Args:
+        item (dict): Document metadata with doc_id, title, and description.
+        base_url (str): Base URL for the HUDOC API.
+        library (str): Library name (ECHR or GREVIO).
+        output_dir (str): Directory to save the text file.
+        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+    """
     doc_id = item["doc_id"]
     text = get_document_text(doc_id, base_url, library)
     if text:
@@ -75,7 +99,15 @@ def download_document(item, base_url, library, output_dir, hudoc_type):
 
 
 def process_rss(hudoc_type, rss_file, output_dir, full, threads):
-    """Process RSS file and download documents in parallel."""
+    """Process RSS file and download documents in parallel.
+
+    Args:
+        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+        rss_file (str): Path to the RSS file.
+        output_dir (str): Directory to save text files.
+        full (bool): If True, download all documents; else, top 3.
+        threads (int): Number of threads for parallel downloading.
+    """
     items = parse_rss_file(rss_file, hudoc_type)
     if not items:
         logging.error("No items to process")
@@ -103,7 +135,13 @@ def process_rss(hudoc_type, rss_file, output_dir, full, threads):
 
 
 def process_link(hudoc_type, link, output_dir):
-    """Process a single document link and download the document."""
+    """Process a single document link and download the document.
+
+    Args:
+        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+        link (str): URL of the document.
+        output_dir (str): Directory to save the text file.
+    """
     items = parse_link(link, hudoc_type)
     if not items:
         logging.error("No document to process")

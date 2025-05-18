@@ -5,6 +5,7 @@ from .core import process_rss, process_link
 
 
 def main():
+    """Parse CLI arguments and run the HUDOC document downloader."""
     parser = argparse.ArgumentParser(
         description="Download ECHR or GREVIO HUDOC documents from RSS feed or link",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -70,7 +71,3 @@ def main():
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise
-
-
-if __name__ == "__main__":
-    main()

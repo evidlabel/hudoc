@@ -7,7 +7,16 @@ from pathlib import Path
 
 
 def get_document_text(doc_id, base_url, library):
-    """Fetch and extract plain text from a HUDOC document, preserving line breaks and avoiding duplicates."""
+    """Fetch and extract plain text from a HUDOC document, preserving line breaks and avoiding duplicates.
+
+    Args:
+        doc_id (str): Document ID (itemid for ECHR, greviosectionid for GREVIO).
+        base_url (str): Base URL for the HUDOC API.
+        library (str): Library name (ECHR or GREVIO).
+
+    Returns:
+        str: Extracted text, or None if failed.
+    """
     url = f"{base_url}?library={library}&id={urllib.parse.quote(doc_id)}"
     logging.info(f"Fetching document content for {doc_id} from {url}")
 
@@ -27,8 +36,8 @@ def get_document_text(doc_id, base_url, library):
     seen_texts = set()
     text_lines = []
     for element in text_elements:
-        # Skip elements with only nested content already processed
-        if element.find(["p", "li", "h1", "h2", "h3"]):
+        # Skip elements with nested structural tags
+        if element.find(["p", "li"]):  # Only skip if nested p or li
             continue
         text = element.get_text(separator=" ", strip=True)
         if text and text not in seen_texts:
@@ -41,7 +50,16 @@ def get_document_text(doc_id, base_url, library):
 
 
 def save_text(text, doc_id, title, description, output_dir, hudoc_type):
-    """Save the text to a file in the output directory."""
+    """Save the text to a file in the output directory.
+
+    Args:
+        text (str): Document text to save.
+        doc_id (str): Document ID.
+        title (str): Document title.
+        description (str): Document description (GREVIO only).
+        output_dir (str): Directory to save the file.
+        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+    """
     prefix = "echr_case" if hudoc_type == "echr" else "grevio_doc"
     safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
     filename = f"{prefix}_{safe_id}.txt"
