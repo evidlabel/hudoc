@@ -9,6 +9,7 @@ from .downloader import download_document, ECHR_BASE_URL, GREVIO_BASE_URL, LIBRA
 
 DEFAULT_LIMIT = 3
 
+
 def process_rss(hudoc_type, rss_file, output_dir, full, threads):
     """Process RSS file and download documents in parallel.
 
@@ -37,12 +38,13 @@ def process_rss(hudoc_type, rss_file, output_dir, full, threads):
                 base_url,
                 LIBRARY[hudoc_type],
                 output_dir,
-                hudoc_type
+                hudoc_type,
             )
             for item in items
         ]
         for future in futures:
             future.result()  # Wait for completion, handle exceptions
+
 
 def process_rss_link(hudoc_type, link, output_dir, full, threads):
     """Process an RSS feed URL and download documents in parallel.
@@ -61,7 +63,9 @@ def process_rss_link(hudoc_type, link, output_dir, full, threads):
         logging.error(f"Failed to fetch RSS feed from {link}: {str(e)}")
         return
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".xml", delete=False
+    ) as temp_file:
         temp_file.write(response.text)
         temp_file_path = temp_file.name
 
@@ -69,6 +73,7 @@ def process_rss_link(hudoc_type, link, output_dir, full, threads):
         process_rss(hudoc_type, temp_file_path, output_dir, full, threads)
     finally:
         os.unlink(temp_file_path)  # Clean up temporary file
+
 
 def process_link(hudoc_type, link, output_dir):
     """Process a single document link and download the document.

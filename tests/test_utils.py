@@ -17,10 +17,12 @@ def test_get_document_text(requests_mock):
                 <p>Test paragraph 2</p>
             </body>
         </html>
-        """
+        """,
     )
 
-    text = get_document_text("test", "https://hudoc.echr.coe.int/app/conversion/docx/html/body", "ECHR")
+    text = get_document_text(
+        "test", "https://hudoc.echr.coe.int/app/conversion/docx/html/body", "ECHR"
+    )
     expected = "Test paragraph 1\n\nTest heading\n\nTest paragraph 2"
     assert text == expected
 
@@ -29,10 +31,12 @@ def test_get_document_text_empty(requests_mock):
     """Test handling empty document content."""
     requests_mock.get(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
-        text="<html><body></body></html>"
+        text="<html><body></body></html>",
     )
 
-    text = get_document_text("test", "https://hudoc.echr.coe.int/app/conversion/docx/html/body", "ECHR")
+    text = get_document_text(
+        "test", "https://hudoc.echr.coe.int/app/conversion/docx/html/body", "ECHR"
+    )
     assert text is None
 
 
@@ -64,4 +68,6 @@ def test_save_text_grevio(tmp_path):
     filepath = output_dir / "grevio_doc_TEST-2023-1.txt"
     assert filepath.exists()
     content = filepath.read_text(encoding="utf-8")
-    assert content == "Title: Test Report\nDescription: Test Description\n\nTest content"
+    assert (
+        content == "Title: Test Report\nDescription: Test Description\n\nTest content"
+    )

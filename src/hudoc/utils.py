@@ -5,6 +5,7 @@ import urllib.parse
 import os
 from pathlib import Path
 
+
 def get_document_text(doc_id, base_url, library):
     """Fetch and extract plain text from a HUDOC document, preserving line breaks and avoiding duplicates.
 
@@ -43,6 +44,7 @@ def get_document_text(doc_id, base_url, library):
     # Join paragraphs with double newlines for readability
     text = "\n\n".join(text_lines)
     return text if text.strip() else None
+
 
 def save_text(text, doc_id, title, description, output_dir, hudoc_type):
     """Save the text to a file in the output directory.

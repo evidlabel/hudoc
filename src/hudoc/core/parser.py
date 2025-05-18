@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import urllib.parse
 
+
 def parse_rss_file(rss_file, hudoc_type):
     """Parse RSS file and extract document IDs, titles, and descriptions.
 
@@ -21,13 +22,19 @@ def parse_rss_file(rss_file, hudoc_type):
         for item in root.findall(".//item"):
             link = item.find("link").text
             title = item.find("title").text or "Untitled"
-            description = item.find("description").text or "No description" if hudoc_type == "grevio" else None
+            description = (
+                item.find("description").text or "No description"
+                if hudoc_type == "grevio"
+                else None
+            )
             try:
                 fragment = link.split("#")[1]
                 fragment = urllib.parse.unquote(fragment)
                 data = json.loads(fragment)
                 doc_id = data[id_key][0]
-                items.append({"doc_id": doc_id, "title": title, "description": description})
+                items.append(
+                    {"doc_id": doc_id, "title": title, "description": description}
+                )
             except (IndexError, json.JSONDecodeError, KeyError) as e:
                 logging.warning(f"Failed to parse {id_key} from link {link}: {str(e)}")
                 continue
@@ -39,6 +46,7 @@ def parse_rss_file(rss_file, hudoc_type):
     except FileNotFoundError:
         logging.error(f"RSS file not found: {rss_file}")
         return []
+
 
 def parse_link(link, hudoc_type):
     """Parse a single document link to extract doc_id, with dummy title and description.
@@ -55,10 +63,14 @@ def parse_link(link, hudoc_type):
         fragment = link.split("#", 1)[1]
         fragment = urllib.parse.unquote(fragment)
         # Normalize JSON by replacing single quotes with double quotes
-        fragment = fragment.replace("'", "\"")
+        fragment = fragment.replace("'", '"')
         data = json.loads(fragment)
         doc_id = data[id_key][0] if isinstance(data[id_key], list) else data[id_key]
-        return [{"doc_id": doc_id, "title": "Untitled", "description": "No description"}]
+        return [
+            {"doc_id": doc_id, "title": "Untitled", "description": "No description"}
+        ]
     except (IndexError, json.JSONDecodeError, KeyError) as e:
-        logging.error(f"Failed to parse {id_key} from link {link}: {str(e)}. Expected a document URL with a #{id_key} fragment.")
+        logging.error(
+            f"Failed to parse {id_key} from link {link}: {str(e)}. Expected a document URL with a #{id_key} fragment."
+        )
         return []
