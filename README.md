@@ -116,9 +116,14 @@ Tests use pre-downloaded data in `tests/data/` to simulate real-world inputs. HT
 
 ### Linting
 
-Check code style with flake8:
+Check code style with ruff:
 ```bash
-flake8 src tests
+ruff check .
+```
+
+Fix linting issues automatically:
+```bash
+ruff check --fix .
 ```
 
 ### Contributing

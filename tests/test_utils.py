@@ -1,7 +1,3 @@
-import pytest
-from unittest.mock import mock_open
-from pathlib import Path
-
 from hudoc.utils import get_document_text, save_text
 
 

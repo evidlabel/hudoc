@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from .core.processor import process_rss, process_link, process_rss_link
+from .core.processor import process_link, process_rss, process_rss_link
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     input_group.add_argument("--rss-file", help="Path to RSS file")
     input_group.add_argument(
         "--link",
-        help='Single document URL (e.g., http://hudoc.echr.coe.int/eng#{"itemid":["001-243083"]}) or RSS feed URL',
+        help="Single document URL or RSS feed URL",
     )
     parser.add_argument(
         "--output-dir", default="data", help="Directory to save text files"
@@ -62,7 +62,9 @@ def main():
             )
         else:
             process_link(
-                hudoc_type=args.type, link=args.link, output_dir=args.output_dir
+                hudoc_type=args.type,
+                link=args.link,
+                output_dir=args.output_dir,
             )
         logging.info("Document download completed")
     except Exception as e:

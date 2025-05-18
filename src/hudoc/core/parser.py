@@ -1,7 +1,7 @@
-import logging
-import xml.etree.ElementTree as ET
 import json
+import logging
 import urllib.parse
+import xml.etree.ElementTree as ET
 
 
 def parse_rss_file(rss_file, hudoc_type):
@@ -11,8 +11,9 @@ def parse_rss_file(rss_file, hudoc_type):
         rss_file (str): Path to the RSS file.
         hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
 
-    Returnssoft: Returns:
+    Returns:
         list: List of dicts with doc_id, title, and description.
+
     """
     try:
         tree = ET.parse(rss_file)
@@ -57,6 +58,7 @@ def parse_link(link, hudoc_type):
 
     Returns:
         list: List with one dict containing doc_id, title, and description.
+
     """
     id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
     try:
@@ -71,6 +73,7 @@ def parse_link(link, hudoc_type):
         ]
     except (IndexError, json.JSONDecodeError, KeyError) as e:
         logging.error(
-            f"Failed to parse {id_key} from link {link}: {str(e)}. Expected a document URL with a #{id_key} fragment."
+            f"Failed to parse {id_key} from link {link}: {str(e)}. "
+            f"Expected a document URL with a #{id_key} fragment."
         )
         return []

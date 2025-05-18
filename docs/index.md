@@ -1,4 +1,4 @@
-# hudoc documentation
+# hudoc Documentation
 
 Welcome to the documentation for `hudoc`, a command-line tool for downloading documents from the ECHR and GREVIO HUDOC databases.
 
@@ -80,9 +80,14 @@ Note: The GREVIO link processing test (`test_process_link_grevio`) is currently 
 
 ### Linting
 
-Run flake8 to check code style:
+Run ruff to check code style:
 ```bash
-flake8 src tests
+ruff check .
+```
+
+Fix issues automatically:
+```bash
+ruff check --fix .
 ```
 
 ### Contributing

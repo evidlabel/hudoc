@@ -1,4 +1,5 @@
 import logging
+
 from ..utils import get_document_text, save_text
 
 ECHR_BASE_URL = "https://hudoc.echr.coe.int/app/conversion/docx/html/body"
@@ -15,6 +16,7 @@ def download_document(item, base_url, library, output_dir, hudoc_type):
         library (str): Library name (ECHR or GREVIO).
         output_dir (str): Directory to save the text file.
         hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+
     """
     doc_id = item["doc_id"]
     text = get_document_text(doc_id, base_url, library)

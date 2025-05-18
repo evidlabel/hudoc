@@ -28,7 +28,7 @@ jobs:
 
     - name: Run linting
       run: |
-        poetry run flake8 src tests
+        poetry run ruff check .
 
     - name: Run tests
       run: |

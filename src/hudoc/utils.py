@@ -1,13 +1,14 @@
 import logging
+import os
+import urllib.parse
+from pathlib import Path
+
 import requests
 from bs4 import BeautifulSoup
-import urllib.parse
-import os
-from pathlib import Path
 
 
 def get_document_text(doc_id, base_url, library):
-    """Fetch and extract plain text from a HUDOC document, preserving line breaks and avoiding duplicates.
+    """Fetch and extract plain text from a HUDOC document.
 
     Args:
         doc_id (str): Document ID (itemid for ECHR, greviosectionid for GREVIO).
@@ -16,6 +17,7 @@ def get_document_text(doc_id, base_url, library):
 
     Returns:
         str: Extracted text, or None if failed.
+
     """
     url = f"{base_url}?library={library}&id={urllib.parse.quote(doc_id)}"
     logging.info(f"Fetching document content for {doc_id} from {url}")
@@ -56,6 +58,7 @@ def save_text(text, doc_id, title, description, output_dir, hudoc_type):
         description (str): Document description (GREVIO only).
         output_dir (str): Directory to save the file.
         hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+
     """
     prefix = "echr_case" if hudoc_type == "echr" else "grevio_doc"
     safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
@@ -70,5 +73,5 @@ def save_text(text, doc_id, title, description, output_dir, hudoc_type):
                 f.write(f"Description: {description}\n\n")
             f.write(text)
         logging.info(f"Saved content for {doc_id} to {filepath}")
-    except IOError as e:
+    except OSError as e:
         logging.error(f"Failed to save file for {doc_id}: {str(e)}")

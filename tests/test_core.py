@@ -1,10 +1,9 @@
-import pytest
-from unittest.mock import patch
 from pathlib import Path
-import requests_mock
 
-from hudoc.core.parser import parse_rss_file, parse_link
-from hudoc.core.processor import process_rss, process_link
+import pytest
+
+from hudoc.core.parser import parse_link, parse_rss_file
+from hudoc.core.processor import process_link, process_rss
 
 
 def test_parse_rss_file_echr():
@@ -52,7 +51,7 @@ def test_process_rss_echr(tmp_path, requests_mock):
     output_dir = tmp_path / "output"
 
     # Mock HTTP request to return pre-downloaded HTML
-    with open("tests/data/echr_doc.html", "r") as f:
+    with open("tests/data/echr_doc.html") as f:
         html_content = f.read()
     requests_mock.get(
         f"https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id={doc_id}",
@@ -75,7 +74,7 @@ def test_process_link_grevio(tmp_path, requests_mock):
     output_dir = tmp_path / "output"
 
     # Mock HTTP request to return pre-downloaded HTML
-    with open("tests/data/grevio_doc.html", "r") as f:
+    with open("tests/data/grevio_doc.html") as f:
         html_content = f.read()
     requests_mock.get(
         f"https://hudoc.grevio.coe.int/app/conversion/docx/html/body?library=GREVIO&id={doc_id}",

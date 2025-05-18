@@ -16,7 +16,7 @@ beautifulsoup4 = "^4.12.3"
 pytest = "^7.4.0"
 pytest-mock = "^3.10.0"
 requests-mock = "^1.10.0"
-flake8 = "^6.0.0"
+ruff = "^0.6.8"
 mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.0"
 
@@ -26,3 +26,18 @@ hudoc = "hudoc.cli:main"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry-core"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+exclude = [".git", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "D", "UP", "B", "SIM", "TCH"]
+ignore = ["D203", "D213"]  # Allow multi-line docstrings to start on first line
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

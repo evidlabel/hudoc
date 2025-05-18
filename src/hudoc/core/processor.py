@@ -1,11 +1,12 @@
 import logging
-import requests
-import tempfile
 import os
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
-from .parser import parse_rss_file, parse_link
-from .downloader import download_document, ECHR_BASE_URL, GREVIO_BASE_URL, LIBRARY
+import requests
+
+from .downloader import ECHR_BASE_URL, GREVIO_BASE_URL, LIBRARY, download_document
+from .parser import parse_link, parse_rss_file
 
 DEFAULT_LIMIT = 3
 
@@ -19,6 +20,7 @@ def process_rss(hudoc_type, rss_file, output_dir, full, threads):
         output_dir (str): Directory to save text files.
         full (bool): If True, download all documents; else, top 3.
         threads (int): Number of threads for parallel downloading.
+
     """
     items = parse_rss_file(rss_file, hudoc_type)
     if not items:
@@ -55,6 +57,7 @@ def process_rss_link(hudoc_type, link, output_dir, full, threads):
         output_dir (str): Directory to save text files.
         full (bool): If True, download all documents; else, top 3.
         threads (int): Number of threads for parallel downloading.
+
     """
     try:
         response = requests.get(link, timeout=10)
@@ -82,6 +85,7 @@ def process_link(hudoc_type, link, output_dir):
         hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
         link (str): URL of the document.
         output_dir (str): Directory to save the text file.
+
     """
     items = parse_link(hudoc_type, link)
     if not items:
