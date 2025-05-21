@@ -1,4 +1,4 @@
-# hudoc Documentation
+# hudoc documentation
 
 Welcome to the documentation for `hudoc`, a command-line tool for downloading documents from the ECHR and GREVIO HUDOC databases.
 
@@ -29,15 +29,15 @@ hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir
 ### Command-Line Options
 
 | Option            | Description                                                                 | Default         |
-MD|-------------------|-----------------------------------------------------------------------------|-----------------|
-MD| `--type`          | HUDOC database: `echr` or `grevio` (required).                               | N/A             |
-MD| `--rss-file`      | Path to RSS file (mutually exclusive with `--link`).                         | N/A             |
-MD| `--link`          | URL of a single document or RSS feed (mutually exclusive with `--rss-file`). | N/A             |
-MD| `--output-dir`    | Directory to save text files or evid subdirectories.                         | `data`          |
-MD| `--full`          | Download all documents from RSS (otherwise, top 3).                          | False           |
-MD| `--threads`       | Number of threads for parallel downloading (RSS only).                       | 10              |
-MD| `--verbose`       | Enable detailed logging.                                                     | False           |
-MD| `--evid`          | Save output in evid format (LaTeX and YAML) instead of plain text.           | False           |
+|-------------------|-----------------------------------------------------------------------------|-----------------|
+| `--type`          | HUDOC database: `echr` or `grevio` (required).                               | N/A             |
+| `--rss-file`      | Path to RSS file (mutually exclusive with `--link`).                         | N/A             |
+| `--link`          | URL of a single document or RSS feed (mutually exclusive with `--rss-file`). | N/A             |
+| `--output-dir`    | Directory to save text files or evid subdirectories.                         | `data`          |
+| `--full`          | Download all documents from RSS (otherwise, top 3).                          | False           |
+| `--threads`       | Number of threads for parallel downloading (RSS only).                       | 10              |
+| `--verbose`       | Enable detailed logging.                                                     | False           |
+| `--evid`          | Save output in evid format (LaTeX and YAML) instead of plain text.           | False           |
 
 ### Examples
 
@@ -111,7 +111,6 @@ The `parse_link` function extracts document IDs from URL fragments, normalizing 
 Documents are fetched using `requests` and parsed with `BeautifulSoup` to extract text from `<p>`, `<li>`, `<h1>`, `<h2>`, and `<h3>` elements. Text is saved with metadata (title, description for GREVIO) in plain text or evid format.
 
 ### Parallel Processing
-CFviation:
 
 RSS processing uses `ThreadPoolExecutor` for parallel downloads, with a configurable thread count (default: 10). Single document downloads are sequential.
 

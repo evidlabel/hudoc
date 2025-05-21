@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hudoc"
-version = "0.1.1"
+version = "0.1.2rc1"
 description = "CLI tool for downloading ECHR and GREVIO HUDOC documents"
 authors = ["evid <95282593+evidlabel@users.noreply.github.com>"]
 license = "MIT"
