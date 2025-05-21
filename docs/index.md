@@ -10,6 +10,7 @@ Key features:
 
 - Supports both ECHR (`itemid`) and GREVIO (`greviosectionid`) document identifiers.
 - Extracts plain text from HTML documents, preserving formatting.
+- Outputs in plain text or evid format (LaTeX and YAML).
 - Modular design with separate modules for parsing, downloading, and processing.
 - Tested with realistic data in `tests/data/`.
 
@@ -22,20 +23,21 @@ See the [README](../README.md#installation) for installation instructions using 
 Run `hudoc` with the following command:
 
 ```bash
-hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--verbose]
+hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--verbose] [--evid]
 ```
 
 ### Command-Line Options
 
 | Option            | Description                                                                 | Default         |
-|-------------------|-----------------------------------------------------------------------------|-----------------|
-| `--type`          | HUDOC database: `echr` or `grevio` (required).                               | N/A             |
-| `--rss-file`      | Path to RSS file (mutually exclusive with `--link`).                         | N/A             |
-| `--link`          | URL of a single document or RSS feed (mutually exclusive with `--rss-file`). | N/A             |
-| `--output-dir`    | Directory to save text files.                                                | `data`          |
-| `--full`          | Download all documents from RSS (otherwise, top 3).                          | False           |
-| `--threads`       | Number of threads for parallel downloading (RSS only).                       | 10              |
-| `--verbose`       | Enable detailed logging.                                                     | False           |
+MD|-------------------|-----------------------------------------------------------------------------|-----------------|
+MD| `--type`          | HUDOC database: `echr` or `grevio` (required).                               | N/A             |
+MD| `--rss-file`      | Path to RSS file (mutually exclusive with `--link`).                         | N/A             |
+MD| `--link`          | URL of a single document or RSS feed (mutually exclusive with `--rss-file`). | N/A             |
+MD| `--output-dir`    | Directory to save text files or evid subdirectories.                         | `data`          |
+MD| `--full`          | Download all documents from RSS (otherwise, top 3).                          | False           |
+MD| `--threads`       | Number of threads for parallel downloading (RSS only).                       | 10              |
+MD| `--verbose`       | Enable detailed logging.                                                     | False           |
+MD| `--evid`          | Save output in evid format (LaTeX and YAML) instead of plain text.           | False           |
 
 ### Examples
 
@@ -46,7 +48,7 @@ See the [README](../README.md#examples) for usage examples.
 The `hudoc` codebase is organized for modularity and maintainability:
 
 - **src/hudoc/cli.py**: Parses command-line arguments and orchestrates execution.
-- **src/hudoc/utils.py**: Contains functions for fetching (`get_document_text`) and saving (`save_text`) document content.
+- **src/hudoc/utils.py**: Contains functions for fetching (`get_document_text`) and saving (`save_text`, `save_evid`) document content.
 - **src/hudoc/core/**:
   - **parser.py**: Parses RSS files (`parse_rss_file`) and document links (`parse_link`).
   - **downloader.py**: Downloads and saves documents (`download_document`).
@@ -74,7 +76,7 @@ Tests use pre-downloaded RSS and HTML files in `tests/data/` to simulate real-wo
 - RSS parsing (`test_parse_rss_file_echr`, `test_parse_rss_file_grevio`).
 - Link parsing (`test_parse_link_echr`, `test_parse_link_grevio`).
 - RSS processing (`test_process_rss_echr`).
-- Utility functions (`test_get_document_text`, `test_save_text_echr`, `test_save_text_grevio`).
+- Utility functions (`test_get_document_text`, `test_save_text_echr`, `test_save_text_grevio`, `test_save_evid_echr`).
 
 Note: The GREVIO link processing test (`test_process_link_grevio`) is currently skipped due to ongoing validation of real-world GREVIO link formats.
 
@@ -106,9 +108,10 @@ The `parse_link` function extracts document IDs from URL fragments, normalizing 
 
 ### Document Downloading
 
-Documents are fetched using `requests` and parsed with `BeautifulSoup` to extract text from `<p>`, `<li>`, `<h1>`, `<h2>`, and `<h3>` elements. Text is saved with metadata (title, description for GREVIO) in plain text files.
+Documents are fetched using `requests` and parsed with `BeautifulSoup` to extract text from `<p>`, `<li>`, `<h1>`, `<h2>`, and `<h3>` elements. Text is saved with metadata (title, description for GREVIO) in plain text or evid format.
 
 ### Parallel Processing
+CFviation:
 
 RSS processing uses `ThreadPoolExecutor` for parallel downloads, with a configurable thread count (default: 10). Single document downloads are sequential.
 

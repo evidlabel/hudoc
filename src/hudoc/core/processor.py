@@ -11,7 +11,7 @@ from .parser import parse_link, parse_rss_file
 DEFAULT_LIMIT = 3
 
 
-def process_rss(hudoc_type, rss_file, output_dir, full, threads):
+def process_rss(hudoc_type, rss_file, output_dir, full, threads, evid=False):
     """Process RSS file and download documents in parallel.
 
     Args:
@@ -20,6 +20,7 @@ def process_rss(hudoc_type, rss_file, output_dir, full, threads):
         output_dir (str): Directory to save text files.
         full (bool): If True, download all documents; else, top 3.
         threads (int): Number of threads for parallel downloading.
+        evid (bool): If True, save in evid format; else plain text.
 
     """
     items = parse_rss_file(rss_file, hudoc_type)
@@ -41,6 +42,7 @@ def process_rss(hudoc_type, rss_file, output_dir, full, threads):
                 LIBRARY[hudoc_type],
                 output_dir,
                 hudoc_type,
+                evid=evid,
             )
             for item in items
         ]
@@ -48,7 +50,7 @@ def process_rss(hudoc_type, rss_file, output_dir, full, threads):
             future.result()  # Wait for completion, handle exceptions
 
 
-def process_rss_link(hudoc_type, link, output_dir, full, threads):
+def process_rss_link(hudoc_type, link, output_dir, full, threads, evid=False):
     """Process an RSS feed URL and download documents in parallel.
 
     Args:
@@ -57,6 +59,7 @@ def process_rss_link(hudoc_type, link, output_dir, full, threads):
         output_dir (str): Directory to save text files.
         full (bool): If True, download all documents; else, top 3.
         threads (int): Number of threads for parallel downloading.
+        evid (bool): If True, save in evid format; else plain text.
 
     """
     try:
@@ -73,18 +76,19 @@ def process_rss_link(hudoc_type, link, output_dir, full, threads):
         temp_file_path = temp_file.name
 
     try:
-        process_rss(hudoc_type, temp_file_path, output_dir, full, threads)
+        process_rss(hudoc_type, temp_file_path, output_dir, full, threads, evid=evid)
     finally:
         os.unlink(temp_file_path)  # Clean up temporary file
 
 
-def process_link(hudoc_type, link, output_dir):
+def process_link(hudoc_type, link, output_dir, evid=False):
     """Process a single document link and download the document.
 
     Args:
         hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
         link (str): URL of the document.
         output_dir (str): Directory to save the text file.
+        evid (bool): If True, save in evid format; else plain text.
 
     """
     items = parse_link(hudoc_type, link)
@@ -94,4 +98,6 @@ def process_link(hudoc_type, link, output_dir):
 
     base_url = ECHR_BASE_URL if hudoc_type == "echr" else GREVIO_BASE_URL
     item = items[0]
-    download_document(item, base_url, LIBRARY[hudoc_type], output_dir, hudoc_type)
+    download_document(
+        item, base_url, LIBRARY[hudoc_type], output_dir, hudoc_type, evid=evid
+    )

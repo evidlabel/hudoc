@@ -58,7 +58,7 @@ def test_process_rss_echr(tmp_path, requests_mock):
         text=html_content,
     )
 
-    process_rss("echr", rss_file, output_dir, full=False, threads=1)
+    process_rss("echr", rss_file, output_dir, full=False, threads=1, evid=False)
     output_file = output_dir / f"echr_case_{doc_id}.txt"
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")
@@ -81,7 +81,7 @@ def test_process_link_grevio(tmp_path, requests_mock):
         text=html_content,
     )
 
-    process_link("grevio", link, output_dir)
+    process_link("grevio", link, output_dir, evid=False)
     output_file = output_dir / f"grevio_doc_{doc_id}.txt"
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")

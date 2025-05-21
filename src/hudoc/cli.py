@@ -37,6 +37,11 @@ def main():
         help="Number of threads for parallel downloading (RSS only)",
     )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    parser.add_argument(
+        "--evid",
+        action="store_true",
+        help="Save output in evid format (LaTeX and YAML) instead of plain text",
+    )
 
     args = parser.parse_args()
 
@@ -51,6 +56,7 @@ def main():
                 output_dir=args.output_dir,
                 full=args.full,
                 threads=args.threads,
+                evid=args.evid,
             )
         elif "/app/transform/rss" in args.link:
             process_rss_link(
@@ -59,12 +65,14 @@ def main():
                 output_dir=args.output_dir,
                 full=args.full,
                 threads=args.threads,
+                evid=args.evid,
             )
         else:
             process_link(
                 hudoc_type=args.type,
                 link=args.link,
                 output_dir=args.output_dir,
+                evid=args.evid,
             )
         logging.info("Document download completed")
     except Exception as e:

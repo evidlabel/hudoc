@@ -5,7 +5,7 @@ A CLI tool for downloading documents from the European Court of Human Rights (EC
 
 ## Features
 
-- Download ECHR and GREVIO documents as plain text files.
+- Download ECHR and GREVIO documents as plain text files or in evid format (LaTeX and YAML with full document text).
 - Support for RSS feeds or individual document URLs.
 - Parallel downloading with configurable threads.
 - Customizable output directory and verbose logging.
@@ -39,7 +39,7 @@ A CLI tool for downloading documents from the European Court of Human Rights (EC
 Run the `hudoc` command to download documents:
 
 ```bash
-hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--verbose]
+hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--verbose] [--evid]
 ```
 
 ### Options
@@ -47,10 +47,11 @@ hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir
 - `--type <echr|grevio>`: Required. Specify the HUDOC database (`echr` or `grevio`).
 - `--rss-file <path>`: Path to an RSS file (mutually exclusive with `--link`).
 - `--link <url>`: URL of a single document or RSS feed (mutually exclusive with `--rss-file`).
-- `--output-dir <dir>`: Directory to save text files (default: `data`).
+- `--output-dir <dir>`: Directory to save text files or evid subdirectories (default: `data`).
 - `--full`: Download all documents from RSS feed (default: top 3).
 - `--threads <n>`: Number of threads for parallel downloading (default: 10, RSS only).
 - `--verbose`: Enable detailed logging for debugging.
+- `--evid`: Save output in evid format (LaTeX with full document text and YAML) instead of plain text.
 
 ### Examples
 
@@ -64,9 +65,9 @@ hudoc --type echr --rss-file tests/data/echr_rss.xml
 hudoc --type grevio --rss-file tests/data/grevio_rss.xml --full --threads 5 --output-dir grevio_cases
 ```
 
-**Download a single ECHR document**:
+**Download a single ECHR document in evid format**:
 ```bash
-hudoc --type echr --link "http://hudoc.echr.coe.int/eng#{\"itemid\":[\"001-243083\"]}"
+hudoc --type echr --link "http://hudoc.echr.coe.int/eng#{\"itemid\":[\"001-243083\"]}" --evid
 ```
 
 **Download from an RSS feed URL**:
