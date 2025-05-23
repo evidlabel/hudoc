@@ -7,16 +7,6 @@ from datetime import datetime
 
 
 def parse_rss_file(rss_file, hudoc_type):
-    """Parse RSS file and extract document IDs, titles, descriptions, and verdict dates.
-
-    Args:
-        rss_file (str): Path to the RSS file.
-        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
-
-    Returns:
-        list: List of dicts with doc_id, title, description, and verdict_date.
-
-    """
     try:
         tree = ET.parse(rss_file)
         root = tree.getroot()
@@ -37,7 +27,9 @@ def parse_rss_file(rss_file, hudoc_type):
                     pub_date = parsedate_to_datetime(pub_date_elem.text)
                     verdict_date = pub_date.strftime("%Y-%m-%d")
                 except (ValueError, TypeError) as e:
-                    logging.warning(f"Failed to parse pubDate {pub_date_elem.text}: {str(e)}")
+                    logging.warning(
+                        f"Failed to parse pubDate {pub_date_elem.text}: {str(e)}"
+                    )
 
             try:
                 fragment = link.split("#")[1]
@@ -66,16 +58,6 @@ def parse_rss_file(rss_file, hudoc_type):
 
 
 def parse_link(link, hudoc_type):
-    """Parse a single document link to extract doc_id, with dummy title and description.
-
-    Args:
-        link (str): URL of the document.
-        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
-
-    Returns:
-        list: List with one dict containing doc_id, title, description, and verdict_date.
-
-    """
     id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
     try:
         fragment = link.split("#", 1)[1]

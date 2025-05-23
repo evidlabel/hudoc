@@ -11,15 +11,6 @@ from bs4 import BeautifulSoup
 
 
 def escape_latex(text):
-    """Escape special characters for LaTeX.
-
-    Args:
-        text (str): Text to escape.
-
-    Returns:
-        str: Escaped text safe for LaTeX.
-
-    """
     latex_special_chars = {
         "&": r"\&",
         "%": r"\%",
@@ -38,17 +29,6 @@ def escape_latex(text):
 
 
 def get_document_text(doc_id, base_url, library):
-    """Fetch and extract plain text from a HUDOC document.
-
-    Args:
-        doc_id (str): Document ID (itemid for ECHR, greviosectionid for GREVIO).
-        base_url (str): Base URL for the HUDOC API.
-        library (str): Library name (ECHR or GREVIO).
-
-    Returns:
-        str: Extracted text, or None if failed.
-
-    """
     url = f"{base_url}?library={library}&id={urllib.parse.quote(doc_id)}"
     logging.info(f"Fetching document content for {doc_id} from {url}")
 
@@ -140,19 +120,7 @@ def save_evid(
     filename,
     verdict_date=None,
 ):
-    """Save the document in evid format (LaTeX and YAML) in a UUID subdirectory.
-
-    Args:
-        text (str): Document text to save.
-        doc_id (str): Document ID.
-        title (str): Document title.
-        description (str): Document description (GREVIO only).
-        output_dir (str): Base directory for output.
-        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
-        filename (str): Original plain text filename for metadata.
-        verdict_date (str, optional): Verdict date in YYYY-MM-DD format.
-
-    """
+    print(title)
     subdir = str(uuid.uuid4())
     subdir_path = os.path.join(output_dir, subdir)
     latex_file = os.path.join(subdir_path, "label.tex")
@@ -161,6 +129,10 @@ def save_evid(
 
     # Escape text for LaTeX
     escaped_text = escape_latex(text)
+
+    # Create YAML metadata
+    id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
+    date = verdict_date or datetime.now().strftime("%Y-%m-%d")
 
     # Create LaTeX content with full text
     latex_content = (
@@ -218,10 +190,12 @@ def save_evid(
 
 \sdate{"""
         + date
-        + """}
+        + r"""}
 
-\section{HUDOC Document}
-\subsection{1}
+\section{"""
+        + safe_id
+        + r"""}
+\subsection{0}
 
 """
         + escaped_text
@@ -230,28 +204,24 @@ def save_evid(
 \end{document}"""
     )
 
-    # Create YAML metadata
-    id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
-    date = verdict_date or datetime.now().strftime("%Y-%m-%d")
     yaml_content = {
-        "authors": title,
+        "authors": hudoc_type,
         "dates": date,
-        "label": f"{title}_{safe_id}",
+        "label": f"{description}",
         "original_name": filename,
         "tags": ["hudoc", "echr", "grevio", "rss", "document"],
         "time_added": datetime.now().strftime("%Y-%m-%d"),
-        "title": title or "Untitled",
-        "url": f"https://hudoc.{hudoc_type}.coe.int/eng#{{{id_key}: ['{doc_id}']}}",
+        "title": doc_id or "Untitled",
+        "url": f'https://hudoc.{hudoc_type}.coe.int/eng#{{"{id_key}":["{doc_id}"]}}',
         "uuid": subdir,
     }
 
-    # Write files
     try:
         Path(subdir_path).mkdir(parents=True, exist_ok=True)
         with open(latex_file, "w", encoding="utf-8") as f:
             f.write(latex_content)
         with open(yaml_file, "w", encoding="utf-8") as f:
-            yaml.dump(yaml_content, f, allow_unicode=True)
+            yaml.dump(yaml_content, f, allow_unicode=True, default_style="'")
         logging.info(f"Saved evid format for {doc_id} to {subdir_path}")
     except OSError as e:
         logging.error(f"Failed to save evid files for {doc_id}: {str(e)}")
