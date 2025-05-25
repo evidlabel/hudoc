@@ -1,20 +1,21 @@
 import argparse
 import logging
 
+from .core.constants import VALID_SUBSITES
 from .core.processor import process_link, process_rss, process_rss_link
 
 
 def main():
     """Parse CLI arguments and run the HUDOC document downloader."""
     parser = argparse.ArgumentParser(
-        description="Download ECHR or GREVIO HUDOC documents from RSS feed or link",
+        description="Download documents from HUDOC subsites using RSS feed or link",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--type",
-        choices=["echr", "grevio"],
+        choices=VALID_SUBSITES,
         required=True,
-        help="HUDOC type (echr or grevio)",
+        help="HUDOC subsite (e.g., echr, grevio, ecrml)",
     )
     input_group = parser.add_mutually_exclusive_group(required=True)
     input_group.add_argument("--rss-file", help="Path to RSS file")
@@ -36,6 +37,12 @@ def main():
         default=10,
         help="Number of threads for parallel downloading (RSS only)",
     )
+    parser.add_argument(
+        "--conversion-delay",
+        type=float,
+        default=2.0,
+        help="Delay (seconds) after triggering document conversion",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.add_argument(
         "--evid",
@@ -56,6 +63,7 @@ def main():
                 output_dir=args.output_dir,
                 full=args.full,
                 threads=args.threads,
+                conversion_delay=args.conversion_delay,
                 evid=args.evid,
             )
         elif "/app/transform/rss" in args.link:
@@ -65,6 +73,7 @@ def main():
                 output_dir=args.output_dir,
                 full=args.full,
                 threads=args.threads,
+                conversion_delay=args.conversion_delay,
                 evid=args.evid,
             )
         else:
@@ -72,6 +81,7 @@ def main():
                 hudoc_type=args.type,
                 link=args.link,
                 output_dir=args.output_dir,
+                conversion_delay=args.conversion_delay,
                 evid=args.evid,
             )
         logging.info("Document download completed")

@@ -1,14 +1,15 @@
 [![Tests](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml) ![Version](https://img.shields.io/github/v/release/evidlabel/hudoc)
 # hudoc
 
-A CLI tool for downloading documents from the European Court of Human Rights (ECHR) and Group of Experts on Action against Violence against Women and Domestic Violence (GREVIO) HUDOC databases using RSS feeds or single document links.
+A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, GREVIO, ECRML, and others) using RSS feeds or single document links.
 
 ## Features
 
-- Download ECHR and GREVIO documents as plain text files or in evid format (LaTeX and YAML with full document text).
+- Download documents from multiple HUDOC subsites (e.g., ECHR, GREVIO, COMMHR, CPT, ECRI, ECRML, ESC, EXEC, FCNM, GRECO, GRETA) as plain text or in evid format (LaTeX and YAML).
 - Support for RSS feeds or individual document URLs.
 - Parallel downloading with configurable threads.
-- Customizable output directory and verbose logging.
+- Triggers on-demand document conversion to HTML only if direct download fails.
+- Customizable output directory, conversion delay, and verbose logging.
 - Modular codebase with separate modules for parsing, downloading, and processing.
 
 ## Installation
@@ -39,17 +40,18 @@ A CLI tool for downloading documents from the European Court of Human Rights (EC
 Run the `hudoc` command to download documents:
 
 ```bash
-hudoc --type <echr|grevio> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--verbose] [--evid]
+hudoc --type <subsite> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--conversion-delay <seconds>] [--verbose] [--evid]
 ```
 
 ### Options
 
-- `--type <echr|grevio>`: Required. Specify the HUDOC database (`echr` or `grevio`).
+- `--type <subsite>`: Required. Specify the HUDOC subsite (e.g., `echr`, `grevio`, `ecrml`, `commhr`, etc.).
 - `--rss-file <path>`: Path to an RSS file (mutually exclusive with `--link`).
 - `--link <url>`: URL of a single document or RSS feed (mutually exclusive with `--rss-file`).
 - `--output-dir <dir>`: Directory to save text files or evid subdirectories (default: `data`).
 - `--full`: Download all documents from RSS feed (default: top 3).
 - `--threads <n>`: Number of threads for parallel downloading (default: 10, RSS only).
+- `--conversion-delay <seconds>`: Delay (seconds) after triggering document conversion if direct download fails (default: 2.0).
 - `--verbose`: Enable detailed logging for debugging.
 - `--evid`: Save output in evid format (LaTeX with full document text and YAML) instead of plain text.
 
@@ -65,14 +67,14 @@ hudoc --type echr --rss-file tests/data/echr_rss.xml
 hudoc --type grevio --rss-file tests/data/grevio_rss.xml --full --threads 5 --output-dir grevio_cases
 ```
 
-**Download a single ECHR document in evid format**:
+**Download a single ECRML document in evid format with 5s conversion delay**:
 ```bash
-hudoc --type echr --link "http://hudoc.echr.coe.int/eng#{\"itemid\":[\"001-243083\"]}" --evid
+hudoc --type ecrml --link "http://hudoc.ecrml.coe.int/eng#{\"ecrmlid\":[\"TEST-ECRML-001\"]}" --evid --conversion-delay 5
 ```
 
-**Download from an RSS feed URL**:
+**Download from an RSS feed URL for COMMHR**:
 ```bash
-hudoc --type grevio --link "https://hudoc.grevio.coe.int/app/transform/rss?library=grevioeng&query=test"
+hudoc --type commhr --link "https://hudoc.commhr.coe.int/app/transform/rss?library=COMMHR&query=test"
 ```
 
 ## Documentation
@@ -90,10 +92,11 @@ Open `http://localhost:8000` in your browser to view the documentation.
 
 - `src/hudoc/`:
   - `cli.py`: Command-line interface and argument parsing.
-  - `utils.py`: Utilities for fetching and saving document text.
+  - `utils.py`: Utilities for fetching (`get_document_text`), triggering conversion (`trigger_document_conversion`), and saving (`save_text`, `save_evid`) document content.
   - `core/`:
-    - `parser.py`: Parses RSS files and document links.
-    - `downloader.py`: Handles document downloading.
+    - `constants.py`: Subsite configurations (URLs, ID keys, library codes).
+    - `parser.py`: Parses RSS files (`parse_rss_file`) and document links (`parse_link`).
+    - `downloader.py`: Handles document downloading (`download_document`).
     - `processor.py`: Orchestrates RSS and link processing.
 - `tests/`:
   - `test_core.py`: Tests for parsing and processing logic.
@@ -137,9 +140,9 @@ ruff check --fix .
 
 ### Troubleshooting
 
-- **RSS parsing errors**: Ensure the RSS file is valid XML and contains `itemid` (ECHR) or `greviosectionid` (GREVIO) in the link fragment.
-- **Document download failures**: Check the URL and network connectivity. Use `--verbose` for detailed logs.
-- **Empty documents**: Some HUDOC documents may lack text content. The tool logs warnings for these cases.
+- **RSS parsing errors**: Ensure the RSS file is valid XML and contains the appropriate document ID key (e.g., `itemid` for ECHR, `greviosectionid` for GREVIO, `ecrmlid` for ECRML).
+- **Document download failures**: Check the URL and network connectivity. Use `--verbose` for detailed logs. If conversion is needed, the tool triggers it only if the direct download fails; try increasing `--conversion-delay` if issues persist.
+- **Empty documents**: Some HUDOC documents may lack text content or fail to convert. The tool logs warnings and retries up to 3 times if the direct download is empty or fails.
 
 ## License
 

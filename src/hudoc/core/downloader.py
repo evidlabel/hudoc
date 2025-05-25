@@ -1,15 +1,16 @@
 import logging
 
 from ..utils import get_document_text, save_text
-
-ECHR_BASE_URL = "https://hudoc.echr.coe.int/app/conversion/docx/html/body"
-GREVIO_BASE_URL = "https://hudoc.grevio.coe.int/app/conversion/docx/html/body"
-LIBRARY = {"echr": "ECHR", "grevio": "GREVIO"}
+from .constants import SUBSITE_CONFIG
 
 
-def download_document(item, base_url, library, output_dir, hudoc_type, evid=False):
+def download_document(item, hudoc_type, output_dir, conversion_delay, evid=False):
+    config = SUBSITE_CONFIG[hudoc_type]
+    base_url = config["base_url"]
+    library = config["library"]
     doc_id = item["doc_id"]
-    text = get_document_text(doc_id, base_url, library)
+    rss_link = item.get("rss_link")
+    text = get_document_text(doc_id, base_url, library, rss_link, conversion_delay)
     if text:
         save_text(
             text,

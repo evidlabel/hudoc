@@ -5,21 +5,19 @@ import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from datetime import datetime
 
+from .constants import SUBSITE_CONFIG
+
 
 def parse_rss_file(rss_file, hudoc_type):
     try:
         tree = ET.parse(rss_file)
         root = tree.getroot()
         items = []
-        id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
+        id_key = SUBSITE_CONFIG[hudoc_type]["id_key"]
         for item in root.findall(".//item"):
             link = item.find("link").text
             title = item.find("title").text or "Untitled"
-            description = (
-                item.find("description").text or "No description"
-                if hudoc_type == "grevio"
-                else None
-            )
+            description = item.find("description").text or "No description"
             pub_date_elem = item.find("pubDate")
             verdict_date = None
             if pub_date_elem is not None and pub_date_elem.text:
@@ -42,6 +40,7 @@ def parse_rss_file(rss_file, hudoc_type):
                         "title": title,
                         "description": description,
                         "verdict_date": verdict_date,
+                        "rss_link": link,
                     }
                 )
             except (IndexError, json.JSONDecodeError, KeyError) as e:
@@ -57,8 +56,8 @@ def parse_rss_file(rss_file, hudoc_type):
         return []
 
 
-def parse_link(link, hudoc_type):
-    id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
+def parse_link(hudoc_type, link):
+    id_key = SUBSITE_CONFIG[hudoc_type]["id_key"]
     try:
         fragment = link.split("#", 1)[1]
         fragment = urllib.parse.unquote(fragment)
@@ -72,6 +71,7 @@ def parse_link(link, hudoc_type):
                 "title": "Untitled",
                 "description": "No description",
                 "verdict_date": None,
+                "rss_link": link,
             }
         ]
     except (IndexError, json.JSONDecodeError, KeyError) as e:

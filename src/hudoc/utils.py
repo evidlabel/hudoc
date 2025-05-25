@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 import urllib.parse
 import uuid
 from datetime import datetime
@@ -8,6 +9,8 @@ from pathlib import Path
 import requests
 import yaml
 from bs4 import BeautifulSoup
+
+from .core.constants import SUBSITE_CONFIG
 
 
 def escape_latex(text):
@@ -28,34 +31,85 @@ def escape_latex(text):
     return text
 
 
-def get_document_text(doc_id, base_url, library):
+def trigger_document_conversion(rss_link, doc_id):
+    """Trigger document conversion by accessing the RSS link URL.
+
+    Args:
+        rss_link (str): The RSS link URL (e.g., https://hudoc.echr.coe.int/eng#{"itemid":"001-123456"}).
+        doc_id (str): Document ID for logging.
+
+    Returns:
+        bool: True if the request was successful, False otherwise.
+    """
+    if not rss_link:
+        logging.warning(f"No RSS link provided for {doc_id}; cannot trigger conversion")
+        return False
+
+    logging.info(f"Triggering document conversion for {doc_id} via {rss_link}")
+    try:
+        response = requests.get(rss_link, timeout=10)
+        response.raise_for_status()
+        logging.debug(f"Conversion trigger successful for {doc_id}")
+        return True
+    except requests.RequestException as e:
+        logging.error(f"Failed to trigger conversion for {doc_id}: {str(e)}")
+        return False
+
+
+def get_document_text(doc_id, base_url, library, rss_link=None, conversion_delay=2.0):
+    """Fetch document text, triggering conversion only if direct download fails.
+
+    Args:
+        doc_id (str): Document ID.
+        base_url (str): Base URL for HTML content.
+        library (str): Library code (e.g., ECHR, GREVIO).
+        rss_link (str, optional): RSS link URL to trigger conversion if needed.
+        conversion_delay (float): Delay (seconds) after triggering conversion.
+
+    Returns:
+        str or None: Extracted text or None if failed.
+    """
     url = f"{base_url}?library={library}&id={urllib.parse.quote(doc_id)}"
     logging.info(f"Fetching document content for {doc_id} from {url}")
 
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        logging.error(f"Failed to fetch content for {doc_id}: {str(e)}")
-        return None
+    for attempt in range(3):
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            for script in soup(["script", "style"]):
+                script.extract()
 
-    soup = BeautifulSoup(response.text, "html.parser")
-    for script in soup(["script", "style"]):
-        script.extract()
+            # Extract text from top-level text containers, avoiding nested duplicates
+            text_elements = soup.find_all(["p", "li", "h1", "h2", "h3"])
+            seen_texts = set()
+            text_lines = []
+            for element in text_elements:
+                text = element.get_text(separator=" ", strip=True)
+                if text and text not in seen_texts:
+                    seen_texts.add(text)
+                    text_lines.append(text)
 
-    # Extract text from top-level text containers, avoiding nested duplicates
-    text_elements = soup.find_all(["p", "li", "h1", "h2", "h3"])
-    seen_texts = set()
-    text_lines = []
-    for element in text_elements:
-        text = element.get_text(separator=" ", strip=True)
-        if text and text not in seen_texts:
-            seen_texts.add(text)
-            text_lines.append(text)
+            # Join paragraphs with double newlines for readability
+            text = "\n\n".join(text_lines)
+            if text.strip():
+                return text
+            logging.warning(f"Empty content for {doc_id} on attempt {attempt + 1}")
+        except requests.RequestException as e:
+            logging.warning(f"Direct download failed for {doc_id} on attempt {attempt + 1}: {str(e)}")
 
-    # Join paragraphs with double newlines for readability
-    text = "\n\n".join(text_lines)
-    return text if text.strip() else None
+        # If direct download failed or content is empty, try triggering conversion
+        if rss_link and attempt < 2:
+            if trigger_document_conversion(rss_link, doc_id):
+                logging.info(f"Waiting {conversion_delay}s for conversion of {doc_id}")
+                time.sleep(conversion_delay)
+            else:
+                logging.warning(f"Conversion trigger failed for {doc_id}; retrying direct download")
+        elif attempt == 2:
+            logging.error(f"Failed to fetch content for {doc_id} after 3 attempts")
+            return None
+
+    return None
 
 
 def save_text(
@@ -74,14 +128,14 @@ def save_text(
         text (str): Document text to save.
         doc_id (str): Document ID.
         title (str): Document title.
-        description (str): Document description (GREVIO only).
+        description (str): Document description.
         output_dir (str): Directory to save the file.
-        hudoc_type (str): Type of HUDOC database ('echr' or 'grevio').
+        hudoc_type (str): HUDOC subsite (e.g., echr, grevio, ecrml).
         verdict_date (str, optional): Verdict date in YYYY-MM-DD format.
         evid (bool): If True, save in evid format (LaTeX and YAML); else plain text.
 
     """
-    prefix = "echr_case" if hudoc_type == "echr" else "grevio_doc"
+    prefix = f"{hudoc_type}_doc"
     safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
     filename = f"{prefix}_{safe_id}.txt"
 
@@ -102,7 +156,7 @@ def save_text(
             Path(output_dir).mkdir(parents=True, exist_ok=True)
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(f"Title: {title}\n")
-                if description and hudoc_type == "grevio":
+                if description:
                     f.write(f"Description: {description}\n\n")
                 f.write(text)
             logging.info(f"Saved content for {doc_id} to {filepath}")
@@ -131,7 +185,7 @@ def save_evid(
     escaped_text = escape_latex(text)
 
     # Create YAML metadata
-    id_key = "itemid" if hudoc_type == "echr" else "greviosectionid"
+    id_key = SUBSITE_CONFIG[hudoc_type]["id_key"]
     date = verdict_date or datetime.now().strftime("%Y-%m-%d")
 
     # Create LaTeX content with full text
@@ -209,9 +263,9 @@ def save_evid(
         "dates": date,
         "label": f"{description}",
         "original_name": filename,
-        "tags": ["hudoc", "echr", "grevio", "rss", "document"],
+        "tags": ["hudoc"] + [hudoc_type],
         "time_added": datetime.now().strftime("%Y-%m-%d"),
-        "title": doc_id or "Untitled",
+        "title": title or "Untitled",
         "url": f'https://hudoc.{hudoc_type}.coe.int/eng#{{"{id_key}":["{doc_id}"]}}',
         "uuid": subdir,
     }
