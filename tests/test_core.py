@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from hudoc.core.constants import VALID_SUBSITES
+from hudoc.core.constants import VALID_SUBSITES, SUBSITE_CONFIG
 from hudoc.core.parser import parse_link, parse_rss_file
 from hudoc.core.processor import process_link, process_rss
 
@@ -14,7 +14,7 @@ def test_parse_rss_file_echr():
     assert len(items) == 1
     assert items[0]["doc_id"] == "001-123456"
     assert items[0]["title"] == "CASE OF TEST v. TEST"
-    assert items[0]["description"] == "No description"
+    assert items[0]["description"] == "12345/20 - Chamber Judgment"
 
 
 def test_parse_rss_file_grevio():
@@ -49,7 +49,7 @@ def test_parse_link_grevio():
 def test_parse_link_generic(subsite):
     """Test parsing a document link for all subsites."""
     doc_id = f"TEST-{subsite.upper()}-001"
-    id_key = f"{subsite}id"
+    id_key = SUBSITE_CONFIG[subsite]["id_key"]
     link = f'http://hudoc.{subsite}.coe.int/eng#{{"{id_key}":["{doc_id}"]}}'
     items = parse_link(subsite, link)
     assert len(items) == 1
@@ -71,7 +71,7 @@ def test_process_rss_echr(tmp_path, requests_mock):
         text=html_content,
     )
 
-    process_rss("echr", rss_file, output_dir, full=False, threads=1, evid=False)
+    process_rss("echr", rss_file, output_dir, full=False, threads=1, conversion_delay=2.0, evid=False)
     output_file = output_dir / f"echr_doc_{doc_id}.txt"
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")
@@ -94,7 +94,7 @@ def test_process_link_grevio(tmp_path, requests_mock):
         text=html_content,
     )
 
-    process_link("grevio", link, output_dir, evid=False)
+    process_link("grevio", link, output_dir, conversion_delay=2.0, evid=False)
     output_file = output_dir / f"grevio_doc_{doc_id}.txt"
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")

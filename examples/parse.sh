@@ -4,8 +4,6 @@
 
 hudoc --type grevio --evid --output-dir data_grevio1 --rss grevio.rss
 
-hudoc --type greco --evid --output-dir data_greco1 --rss greco.rss 
-
 hudoc --type commhr --evid --output-dir data_commhr1 --rss commhr.rss
 
 hudoc --type cpt --evid --output-dir data_cpt1 --rss hudoccpt.rss

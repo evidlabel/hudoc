@@ -96,7 +96,7 @@ def get_document_text(doc_id, base_url, library, rss_link=None, conversion_delay
                 return text
             logging.warning(f"Empty content for {doc_id} on attempt {attempt + 1}")
         except requests.RequestException as e:
-            logging.warning(f"Direct download failed for {doc_id} on attempt {attempt + 1}: {str(e)}")
+            logging.warning(f"Attempt {attempt + 1} failed for {doc_id}: {str(e)}")
 
         # If direct download failed or content is empty, try triggering conversion
         if rss_link and attempt < 2:
