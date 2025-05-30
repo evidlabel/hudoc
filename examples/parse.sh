@@ -2,25 +2,15 @@
 
 # these are test runs, add --full to get complete datasets
 
-hudoc --type grevio --evid --output-dir data_grevio1 --rss grevio.rss
-
-hudoc --type commhr --evid --output-dir data_commhr1 --rss commhr.rss
-
-hudoc --type cpt --evid --output-dir data_cpt1 --rss hudoccpt.rss
-
-hudoc --type ecri --evid --output-dir data_ecri1 --rss hudocecri.rss
-
-hudoc --type ecrml --evid --output-dir data_ecrml1 --rss hudocecrml.rss
-
-hudoc --type esc --evid --output-dir data_esc1 --rss hudocesc.rss
-
-hudoc --type exec --evid --output-dir data_exec1 --rss hudocexec.rss
-
-hudoc --type fcnm --evid --output-dir data_fcnm1 --rss hudocfcnm.rss
-
-hudoc --type greco --evid --output-dir data_greco1 --rss hudocgreco.rss
-
-hudoc --type greta --evid --output-dir data_greta1 --rss hudocgreta.rss
-
-hudoc --type echr --evid --output-dir data_echr --rss echr.rss 
+hudoc -t grevio  -e  -o data_grevio1     -r grevio.rss
+hudoc -t commhr  -e  -o data_commhr1     -r commhr.rss
+hudoc -t cpt     -e  -o data_cpt1        -r hudoccpt.rss
+hudoc -t ecri    -e  -o data_ecri1       -r hudocecri.rss
+hudoc -t ecrml   -e  -o data_ecrml1      -r hudocecrml.rss
+hudoc -t esc     -e  -o data_esc1        -r hudocesc.rss
+hudoc -t exec    -e  -o data_exec1       -r hudocexec.rss
+hudoc -t fcnm    -e  -o data_fcnm1       -r hudocfcnm.rss
+hudoc -t greco   -e  -o data_greco1      -r hudocgreco.rss
+hudoc -t greta   -e  -o data_greta1      -r hudocgreta.rss
+hudoc -t echr    -e  -o data_echr        -r echr.rss 
 
