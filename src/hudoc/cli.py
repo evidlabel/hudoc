@@ -1,93 +1,89 @@
-import argparse
+import click
 import logging
 
 from .core.constants import VALID_SUBSITES
-from .core.processor import process_link, process_rss, process_rss_link
+from .core.processor import process_rss
 
 
-def main():
-    """Parse CLI arguments and run the HUDOC document downloader."""
-    parser = argparse.ArgumentParser(
-        description="Download documents from HUDOC subsites using RSS feed or link",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "--type",
-        choices=VALID_SUBSITES,
-        required=True,
-        help="HUDOC subsite (e.g., echr, grevio, ecrml)",
-    )
-    input_group = parser.add_mutually_exclusive_group(required=True)
-    input_group.add_argument("--rss-file", help="Path to RSS file")
-    input_group.add_argument(
-        "--link",
-        help="Single document URL or RSS feed URL",
-    )
-    parser.add_argument(
-        "--output-dir", default="data", help="Directory to save text files"
-    )
-    parser.add_argument(
-        "--full",
-        action="store_true",
-        help="Download all documents from RSS (default: top 3)",
-    )
-    parser.add_argument(
-        "--threads",
-        type=int,
-        default=10,
-        help="Number of threads for parallel downloading (RSS only)",
-    )
-    parser.add_argument(
-        "--conversion-delay",
-        type=float,
-        default=2.0,
-        help="Delay (seconds) after triggering document conversion",
-    )
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
-    parser.add_argument(
-        "--evid",
-        action="store_true",
-        help="Save output in evid format (LaTeX and YAML) instead of plain text",
-    )
-
-    args = parser.parse_args()
-
-    if args.verbose:
+@click.command(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    help="Download documents from HUDOC subsites using RSS file",
+)
+@click.option(
+    "-t",
+    "--type",
+    type=click.Choice(VALID_SUBSITES),
+    required=True,
+    help="HUDOC subsite (e.g., echr, grevio, ecrml)",
+)
+@click.option(
+    "-r",
+    "--rss-file",
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help="Path to RSS file",
+)
+@click.option(
+    "-o",
+    "--output-dir",
+    default="data",
+    show_default=True,
+    type=click.Path(file_okay=False, writable=True),
+    help="Directory to save text files",
+)
+@click.option(
+    "-f",
+    "--full",
+    is_flag=True,
+    help="Download all documents from RSS (default: top 3)",
+)
+@click.option(
+    "-n",
+    "--threads",
+    default=10,
+    show_default=True,
+    type=int,
+    help="Number of threads for parallel downloading",
+)
+@click.option(
+    "-d",
+    "--conversion-delay",
+    default=2.0,
+    show_default=True,
+    type=float,
+    help="Delay (seconds) after triggering document conversion",
+)
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Enable verbose logging",
+)
+@click.option(
+    "-e",
+    "--evid",
+    is_flag=True,
+    help="Save output in evid format (LaTeX and YAML) instead of plain text",
+)
+def main(type, rss_file, output_dir, full, threads, conversion_delay, verbose, evid):
+    """Download documents from HUDOC subsites using RSS file."""
+    if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
     try:
-        if args.rss_file:
-            process_rss(
-                hudoc_type=args.type,
-                rss_file=args.rss_file,
-                output_dir=args.output_dir,
-                full=args.full,
-                threads=args.threads,
-                conversion_delay=args.conversion_delay,
-                evid=args.evid,
-            )
-        elif "/app/transform/rss" in args.link:
-            process_rss_link(
-                hudoc_type=args.type,
-                link=args.link,
-                output_dir=args.output_dir,
-                full=args.full,
-                threads=args.threads,
-                conversion_delay=args.conversion_delay,
-                evid=args.evid,
-            )
-        else:
-            process_link(
-                hudoc_type=args.type,
-                link=args.link,
-                output_dir=args.output_dir,
-                conversion_delay=args.conversion_delay,
-                evid=args.evid,
-            )
+        process_rss(
+            hudoc_type=type,
+            rss_file=rss_file,
+            output_dir=output_dir,
+            full=full,
+            threads=threads,
+            conversion_delay=conversion_delay,
+            evid=evid,
+        )
         logging.info("Document download completed")
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
-        raise
+        raise click.ClickException(str(e))
 
 
 if __name__ == "__main__":

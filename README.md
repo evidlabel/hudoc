@@ -1,14 +1,13 @@
 [![Tests](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml) ![Version](https://img.shields.io/github/v/release/evidlabel/hudoc)
 # hudoc
 
-A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, GREVIO, ECRML, and others) using RSS feeds or single document links.
+A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, GREVIO, ECRML, and others) using RSS feeds.
 
 ## Features
 
 - Download documents from multiple HUDOC subsites (e.g., ECHR, GREVIO, COMMHR, CPT, ECRI, ECRML, ESC, EXEC, FCNM, GRECO, GRETA) as plain text or in evid format (LaTeX and YAML).
-- Support for RSS feeds or individual document URLs.
-- Parallel downloading with configurable threads.
-- Triggers on-demand document conversion to HTML only if direct download fails.
+- Support for RSS feeds with parallel downloading.
+- Triggers on-demand document conversion to HTML if direct download fails.
 - Customizable output directory, conversion delay, and verbose logging.
 - Modular codebase with separate modules for parsing, downloading, and processing.
 
@@ -30,51 +29,52 @@ A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, G
    poetry install
    ```
 
-4. **Activate the virtual environment**:
+4. **Set up Fish shell completion (optional)**:
+   To enable tab completion for `hudoc` in Fish shell and run it via `poetry run` automatically:
    ```bash
-   poetry shell
+   mkdir -p ~/.config/fish/completions
+   cp hudoc.fish ~/.config/fish/completions/
    ```
+   Or source it manually in your Fish shell:
+   ```fish
+   source hudoc.fish
+   ```
+   This makes `hudoc` available as a command with tab completion, running via `poetry run hudoc`.
 
 ## Usage
 
-Run the `hudoc` command to download documents:
+Run the `hudoc` command to download documents from an RSS file:
 
 ```bash
-hudoc --type <subsite> [--rss-file <path> | --link <url>] [--output-dir <dir>] [--full] [--threads <n>] [--conversion-delay <seconds>] [--verbose] [--evid]
+hudoc -t <subsite> -r <rss-file> [-o <dir>] [-f] [-n <threads>] [-d <seconds>] [-v] [-e]
 ```
 
 ### Options
 
-- `--type <subsite>`: Required. Specify the HUDOC subsite (e.g., `echr`, `grevio`, `ecrml`, `commhr`, etc.).
-- `--rss-file <path>`: Path to an RSS file (mutually exclusive with `--link`).
-- `--link <url>`: URL of a single document or RSS feed (mutually exclusive with `--rss-file`).
-- `--output-dir <dir>`: Directory to save text files or evid subdirectories (default: `data`).
-- `--full`: Download all documents from RSS feed (default: top 3).
-- `--threads <n>`: Number of threads for parallel downloading (default: 10, RSS only).
-- `--conversion-delay <seconds>`: Delay (seconds) after triggering document conversion if direct download fails (default: 2.0).
-- `--verbose`: Enable detailed logging for debugging.
-- `--evid`: Save output in evid format (LaTeX with full document text and YAML) instead of plain text.
+- `-t`, `--type <subsite>`: Required. Specify the HUDOC subsite (e.g., `echr`, `grevio`, `ecrml`, `commhr`, etc.).
+- `-r`, `--rss-file <path>`: Required. Path to an RSS file.
+- `-o`, `--output-dir <dir>`: Directory to save text files or evid subdirectories (default: `data`).
+- `-f`, `--full`: Download all documents from RSS feed (default: top 3).
+- `-n`, `--threads <n>`: Number of threads for parallel downloading (default: 10).
+- `-d`, `--conversion-delay <seconds>`: Delay (seconds) after triggering document conversion if direct download fails (default: 2.0).
+- `-v`, `--verbose`: Enable detailed logging for debugging.
+- `-e`, `--evid`: Save output in evid format (LaTeX and YAML) instead of plain text.
 
 ### Examples
 
 **Download top 3 ECHR documents from an RSS file**:
 ```bash
-hudoc --type echr --rss-file tests/data/echr_rss.xml
+hudoc -t echr -r tests/data/echr_rss.xml
 ```
 
 **Download all GREVIO documents with 5 threads**:
 ```bash
-hudoc --type grevio --rss-file tests/data/grevio_rss.xml --full --threads 5 --output-dir grevio_cases
+hudoc -t grevio -r tests/data/grevio_rss.xml -f -n 5 -o grevio_cases
 ```
 
-**Download a single ECRML document in evid format with 5s conversion delay**:
+**Download ECHR documents in evid format with 5s conversion delay**:
 ```bash
-hudoc --type ecrml --link "http://hudoc.ecrml.coe.int/eng#{\"ecrmlid\":[\"TEST-ECRML-001\"]}" --evid --conversion-delay 5
-```
-
-**Download from an RSS feed URL for COMMHR**:
-```bash
-hudoc --type commhr --link "https://hudoc.commhr.coe.int/app/transform/rss?library=COMMHR&query=test"
+hudoc -t echr -r tests/data/echr_rss.xml -e -d 5
 ```
 
 ## Documentation
@@ -95,9 +95,9 @@ Open `http://localhost:8000` in your browser to view the documentation.
   - `utils.py`: Utilities for fetching (`get_document_text`), triggering conversion (`trigger_document_conversion`), and saving (`save_text`, `save_evid`) document content.
   - `core/`:
     - `constants.py`: Subsite configurations (URLs, ID keys, library codes).
-    - `parser.py`: Parses RSS files (`parse_rss_file`) and document links (`parse_link`).
+    - `parser.py`: Parses RSS files (`parse_rss_file`).
     - `downloader.py`: Handles document downloading (`download_document`).
-    - `processor.py`: Orchestrates RSS and link processing.
+    - `processor.py`: Orchestrates RSS processing.
 - `tests/`:
   - `test_core.py`: Tests for parsing and processing logic.
   - `test_utils.py`: Tests for utility functions.
@@ -141,7 +141,7 @@ ruff check --fix .
 ### Troubleshooting
 
 - **RSS parsing errors**: Ensure the RSS file is valid XML and contains the appropriate document ID key (e.g., `itemid` for ECHR, `greviosectionid` for GREVIO, `ecrmlid` for ECRML).
-- **Document download failures**: Check the URL and network connectivity. Use `--verbose` for detailed logs. If conversion is needed, the tool triggers it only if the direct download fails; try increasing `--conversion-delay` if issues persist.
+- **Document download failures**: Check the RSS file and network connectivity. Use `--verbose` for detailed logs. If conversion is needed, the tool triggers it only if the direct download fails; try increasing `--conversion-delay` if issues persist.
 - **Empty documents**: Some HUDOC documents may lack text content or fail to convert. The tool logs warnings and retries up to 3 times if the direct download is empty or fails.
 
 ## License

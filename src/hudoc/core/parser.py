@@ -3,8 +3,6 @@ import logging
 import urllib.parse
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
-from datetime import datetime
-
 from .constants import SUBSITE_CONFIG
 
 
@@ -53,30 +51,4 @@ def parse_rss_file(rss_file, hudoc_type):
         return []
     except FileNotFoundError:
         logging.error(f"RSS file not found: {rss_file}")
-        return []
-
-
-def parse_link(hudoc_type, link):
-    id_key = SUBSITE_CONFIG[hudoc_type]["id_key"]
-    try:
-        fragment = link.split("#", 1)[1]
-        fragment = urllib.parse.unquote(fragment)
-        # Normalize JSON by replacing single quotes with double quotes
-        fragment = fragment.replace("'", '"')
-        data = json.loads(fragment)
-        doc_id = data[id_key][0] if isinstance(data[id_key], list) else data[id_key]
-        return [
-            {
-                "doc_id": doc_id,
-                "title": "Untitled",
-                "description": "No description",
-                "verdict_date": None,
-                "rss_link": link,
-            }
-        ]
-    except (IndexError, json.JSONDecodeError, KeyError) as e:
-        logging.error(
-            f"Failed to parse {id_key} from link {link}: {str(e)}. "
-            f"Expected a document URL with a #{id_key} fragment."
-        )
         return []
