@@ -1,30 +1,35 @@
-[tool.poetry]
+[project]
 name = "hudoc"
 version = "0.1.2"
 description = "CLI tool for downloading ECHR and GREVIO HUDOC documents"
-authors = ["evid <95282593+evidlabel@users.noreply.github.com>"]
-license = "MIT"
+authors = [
+    { name = "evid", email = "95282593+evidlabel@users.noreply.github.com" },
+]
+requires-python = "~=3.12"
 readme = "README.md"
+license = "MIT"
 keywords = ["hudoc", "echr", "grevio", "rss", "document"]
+dependencies = [
+    "requests>=2.32.3,<3",
+    "beautifulsoup4>=4.12.3,<5",
+    "pyyaml>=6.0.2,<7",
+    "click>=8.1.7,<9",
+    "numpy>=1.26.0",             # Added for vectorization support
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-requests = "^2.32.3"
-beautifulsoup4 = "^4.12.3"
-pyyaml = "^6.0.2"
-click = "^8.1.7"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-pytest-mock = "^3.10.0"
-requests-mock = "^1.10.0"
-ruff = "^0.6.8"
-mkdocs = "^1.5.3"
-mkdocs-material = "^9.5.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 hudoc = "hudoc.cli:main"
 
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0,<8",
+    "pytest-mock>=3.10.0,<4",
+    "requests-mock>=1.10.0,<2",
+    "ruff>=0.6.8,<0.7",
+    "mkdocs>=1.5.3,<2",
+    "mkdocs-material>=9.5.0,<10",
+]
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry-core"
+requires = ["setuptools"]               # Transitioned from poetry-core to a standard backend
+build-backend = "setuptools.build_meta"

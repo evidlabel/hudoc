@@ -13,11 +13,12 @@ Key features:
 - Extracts plain text from HTML documents, preserving formatting.
 - Outputs in plain text or evid format (LaTeX and YAML).
 - Modular design with separate modules for parsing, downloading, and processing.
+- Utilizes NumPy for vectorized data operations.
 - Tested with realistic data in `tests/data/`.
 
 ## Installation
 
-See the [README](../README.md#installation) for installation instructions using Poetry.
+See the [README](../README.md#installation) for installation instructions using UV.
 
 ## Usage
 
@@ -63,7 +64,7 @@ The `hudoc` codebase is organized for modularity and maintainability:
 
 Install development dependencies:
 ```bash
-poetry install --with dev
+uv pip install --with dev
 ```
 
 ### Running Tests

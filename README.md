@@ -1,4 +1,4 @@
-[![Tests](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml) ![Version](https://img.shields.io/github/v/release/evidlabel/hudoc)
+![Tests](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml) ![Version](https://img.shields.io/github/v/release/evidlabel/hudoc)
 # hudoc
 
 A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, GREVIO, ECRML, and others) using RSS feeds.
@@ -13,9 +13,9 @@ A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, G
 
 ## Installation
 
-1. **Install Poetry**:
+1. **Install UV**:
    ```bash
-   pip install poetry
+   pip install uv
    ```
 
 2. **Clone the repository**:
@@ -26,20 +26,23 @@ A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, G
 
 3. **Install dependencies**:
    ```bash
-   poetry install
+   uv pip install .
    ```
 
 4. **Set up Fish shell completion (optional)**:
-   To enable tab completion for `hudoc` in Fish shell and run it via `poetry run` automatically:
+   To make `hudoc` available as a command with tab completion:
    ```bash
    mkdir -p ~/.config/fish/completions
    cp hudoc.fish ~/.config/fish/completions/
    ```
-   Or source it manually in your Fish shell:
+   This enables `hudoc` in all new Fish shell sessions. To apply immediately:
    ```fish
-   source hudoc.fish
+   source ~/.config/fish/completions/hudoc.fish
    ```
-   This makes `hudoc` available as a command with tab completion, running via `poetry run hudoc`.
+   Alternatively, add to `~/.config/fish/config.fish`:
+   ```fish
+   source /path/to/hudoc.fish
+   ```
 
 ## Usage
 
@@ -81,8 +84,8 @@ hudoc -t echr -r tests/data/echr_rss.xml -e -d 5
 
 For detailed documentation, build and serve the MkDocs site:
 ```bash
-poetry install --with dev
-poetry run mkdocs serve
+uv pip install --with dev  # Install dev dependencies
+uv run mkdocs serve
 ```
 Open `http://localhost:8000` in your browser to view the documentation.
 
@@ -108,7 +111,7 @@ Open `http://localhost:8000` in your browser to view the documentation.
 
 Install development dependencies:
 ```bash
-poetry install --with dev
+uv pip install --with dev
 ```
 
 Run tests with pytest:

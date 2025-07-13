@@ -1,8 +1,6 @@
 from pathlib import Path
 
-import pytest
 
-from hudoc.core.constants import VALID_SUBSITES, SUBSITE_CONFIG
 from hudoc.core.parser import parse_rss_file
 from hudoc.core.processor import process_rss
 

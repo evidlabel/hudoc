@@ -4,3 +4,5 @@
 *pyc
 label.tex
 info.yml
+*.egg-info**
+*.txt
