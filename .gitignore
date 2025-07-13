@@ -9,3 +9,4 @@ info.yml
 ./build/*
 label*
 examples/*/*
+output.json

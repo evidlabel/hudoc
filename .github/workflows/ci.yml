@@ -31,4 +31,4 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest
+        uv run pytest  # Fixed to run pytest via uv to ensure it's in the environment
