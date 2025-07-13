@@ -11,26 +11,16 @@ from string import Template
 import requests
 import yaml
 from bs4 import BeautifulSoup
+import re
 
 from .core.constants import SUBSITE_CONFIG
+from .models import EvidMetadata
 
 
-def escape_latex(text):
-    """Escape special characters in text for LaTeX compatibility."""
-    latex_special_chars = [
-        ("\\", r"\textbackslash{}"),  # Backslash first to avoid re-escaping introduced backslashes
-        ("&", r"\&"),
-        ("%", r"\%"),
-        ("$", r"\$"),
-        ("#", r"\#"),
-        ("_", r"\_"),
-        ("{", r"\{"),
-        ("}", r"\}"),
-        ("~", r"\textasciitilde{}"),
-        ("^", r"\textasciicircum{}"),
-    ]
-    for char, escaped in latex_special_chars:
-        text = text.replace(char, escaped)
+def clean_text_for_latex(text: str) -> str:
+    """Clean text for LaTeX by escaping special characters and normalizing newlines."""
+    text = re.sub(r"([#%&])", r"\\\1", text)
+    text = re.sub(r"(\n\s*\n)+", r"\n\n", text)
     return text
 
 
@@ -161,17 +151,34 @@ def save_evid(
         latex_path = Path(latex_file)
         yaml_path = Path(yaml_file)
         if latex_path.exists() and yaml_path.exists():
-            logging.info(f"Evid format for {doc_id} already exists at {subdir_path}, skipping")
+            logging.info(
+                f"Evid format for {doc_id} already exists at {subdir_path}, skipping"
+            )
             return
         else:
-            logging.warning(f"Partial evid files found for {doc_id} at {subdir_path}, overwriting")
+            logging.warning(
+                f"Partial evid files found for {doc_id} at {subdir_path}, overwriting"
+            )
 
-    # Escape text for LaTeX
-    escaped_text = escape_latex(text)
+    # Clean text for LaTeX
+    cleaned_text = clean_text_for_latex(text)
 
     # Create YAML metadata
     id_key = SUBSITE_CONFIG[hudoc_type]["id_key"]
     date = verdict_date or datetime.now().strftime("%Y-%m-%d")
+
+    metadata = EvidMetadata(
+        authors=hudoc_type,
+        dates=date,
+        label=description or "No description",
+        original_name=filename,
+        tags=["hudoc"] + [hudoc_type],
+        time_added=datetime.now().strftime("%Y-%m-%d"),
+        title=title or "Untitled",
+        url=f'https://hudoc.{hudoc_type}.coe.int/eng#{{"{id_key}":["{doc_id}"]}}',
+        uuid=subdir,
+    )
+    yaml_content = metadata.model_dump()
 
     # Create LaTeX content with full text
     template = r"""\documentclass[parskip=full]{article}
@@ -191,23 +198,25 @@ def save_evid(
 \usepackage{todonotes}
 \usepackage{etoolbox}
 \makeatletter
-\pretocmd{\@startsection}{{\gdef\thesectiontype{#1}}}{}{}
-\pretocmd{\@sect}{{\@namedef{the\thesectiontype title}{#8}}}{}{}
-\pretocmd{\@ssect}{{\@namedef{the\thesectiontype title}{#5}}}{}{}
+\pretocmd{\@startsection}{\gdef\thesectiontype{#1}}{}{}
+\pretocmd{\@sect}{\@namedef{the\thesectiontype title}{#8}}{}{}
+\pretocmd{\@ssect}{\@namedef{the\thesectiontype title}{#5}}{}{}
 \makeatother
 
 \newwrite\textfile
 \immediate\openout\textfile=\jobname.csv
 \immediate\write\textfile{label ; quote ; note ; section title ; section no ; page ; date ; opage}
 
-\newcommandx{\lb}[3]{{\immediate\write\textfile{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}}%
-  \csdef{#1}{#2}%
-  \hypertarget{#1}{{\textcolor{blue}{#2}}}\todo[color=blue!10!white,caption={{\small#1; #3; #2}}}{#1: #3}%
-}}
 
-\newcommandx{\cc}[1]{{
-  \hyperlink{#1}{{\csuse{#1}}}
-}}
+\newcommandx{\lb}[3]{\immediate\write\textfile{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}%
+  \csdef{#1}{#2}%
+  \hypertarget{#1}{\textcolor{blue}{#2}}\todo[color=blue!10!white,caption={\small#1; #3; #2}]{#1: #3}%
+}
+
+\newcommandx{\cc}[1]{
+  \hyperlink{#1}{\csuse{#1}}
+}
+
 
 \newcommand{\sdate}[1]{%
   \def\localdate{#1}%
@@ -220,8 +229,10 @@ def save_evid(
 \usepackage{scrextend}
 %% HEADER
 
+% \title{}
+
 \begin{document}
-\maketitle
+% \maketitle
 
 \tableofcontents
 \listoftodos[Labels]
@@ -231,24 +242,13 @@ def save_evid(
 \section{$safe_id}
 \subsection{0}
 
-$escaped_text
+$cleaned_text
 
 \end{document}"""
-    latex_content = Template(textwrap.dedent(template)).substitute(
-        date=date, safe_id=safe_id, escaped_text=escaped_text
-    )
 
-    yaml_content = {
-        "authors": hudoc_type,
-        "dates": date,
-        "label": description or "No description",
-        "original_name": filename,
-        "tags": ["hudoc"] + [hudoc_type],
-        "time_added": datetime.now().strftime("%Y-%m-%d"),
-        "title": title or "Untitled",
-        "url": f'https://hudoc.{hudoc_type}.coe.int/eng#{{"{id_key}":["{doc_id}"]}}',
-        "uuid": subdir,
-    }
+    latex_content = Template(textwrap.dedent(template)).substitute(
+        date=date, safe_id=safe_id, cleaned_text=cleaned_text
+    )
 
     try:
         Path(subdir_path).mkdir(parents=True, exist_ok=True)
