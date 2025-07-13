@@ -18,14 +18,17 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install Poetry
+    - name: Install UV
       run: |
-        pip install poetry
+        pip install uv
+
+    - name: Create virtual environment
+      run: uv venv .venv
 
     - name: Install dependencies
       run: |
-        poetry install --with dev
+        uv pip install .[dev]
 
     - name: Run tests
       run: |
-        poetry run pytest
+        uv run pytest  # Fixed to run pytest via uv to ensure it's in the environment

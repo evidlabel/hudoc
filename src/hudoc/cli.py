@@ -1,93 +1,111 @@
-import argparse
+import click
 import logging
 
 from .core.constants import VALID_SUBSITES
-from .core.processor import process_link, process_rss, process_rss_link
+from .core.processor import process_rss
 
 
-def main():
-    """Parse CLI arguments and run the HUDOC document downloader."""
-    parser = argparse.ArgumentParser(
-        description="Download documents from HUDOC subsites using RSS feed or link",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "--type",
-        choices=VALID_SUBSITES,
-        required=True,
-        help="HUDOC subsite (e.g., echr, grevio, ecrml)",
-    )
-    input_group = parser.add_mutually_exclusive_group(required=True)
-    input_group.add_argument("--rss-file", help="Path to RSS file")
-    input_group.add_argument(
-        "--link",
-        help="Single document URL or RSS feed URL",
-    )
-    parser.add_argument(
-        "--output-dir", default="data", help="Directory to save text files"
-    )
-    parser.add_argument(
-        "--full",
-        action="store_true",
-        help="Download all documents from RSS (default: top 3)",
-    )
-    parser.add_argument(
-        "--threads",
-        type=int,
-        default=10,
-        help="Number of threads for parallel downloading (RSS only)",
-    )
-    parser.add_argument(
-        "--conversion-delay",
-        type=float,
-        default=2.0,
-        help="Delay (seconds) after triggering document conversion",
-    )
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
-    parser.add_argument(
-        "--evid",
-        action="store_true",
-        help="Save output in evid format (LaTeX and YAML) instead of plain text",
-    )
+# Custom logger to use Click's colored output
+class ClickHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            level = record.levelname
+            if level == "DEBUG":
+                click.secho(msg, fg="blue")
+            elif level == "INFO":
+                click.secho(msg, fg="green")
+            elif level == "WARNING":
+                click.secho(msg, fg="yellow")
+            elif level == "ERROR":
+                click.secho(msg, fg="red")
+        except Exception:
+            self.handleError(record)
 
-    args = parser.parse_args()
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+# Configure logging with ClickHandler
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+handler = ClickHandler()
+handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+logger.addHandler(handler)
 
+
+@click.command(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    help=click.style(
+        "Download documents from HUDOC subsites using an RSS file", fg="cyan"
+    ),
+    epilog=click.style(
+        "Example: python -m hudoc -t echr -f rss_feed.xml -o output_dir -l 5 -n 10",
+        fg="cyan",
+    ),
+)
+@click.option(
+    "-t",
+    "--type",
+    type=click.Choice(VALID_SUBSITES),
+    required=True,
+    help=click.style("HUDOC subsite (e.g., echr, grevio, ecrml)", fg="white"),
+)
+@click.option(
+    "-f",
+    "--rss-file",
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help=click.style("Path to RSS file", fg="white"),
+)
+@click.option(
+    "-o",
+    "--output-dir",
+    default="data",
+    show_default=True,
+    type=click.Path(file_okay=False, writable=True),
+    help=click.style("Directory to save text files (default: data)", fg="white"),
+)
+@click.option(
+    "-l",
+    "--limit",
+    default=3,
+    show_default=True,
+    type=int,
+    help=click.style("Number of documents to download (0 for all)", fg="white"),
+)
+@click.option(
+    "-n",
+    "--threads",
+    default=10,
+    show_default=True,
+    type=int,
+    help=click.style(
+        "Number of threads for parallel downloading (default: 10)", fg="white"
+    ),
+)
+@click.option(
+    "-p",
+    "--plain",
+    is_flag=True,
+    help=click.style(
+        "Save output in plain text format (default: evid format for labelling).", fg="white"
+    ),
+)
+def main(type, rss_file, output_dir, limit, threads, plain):
+    """Download documents from HUDOC subsites using RSS file."""
     try:
-        if args.rss_file:
-            process_rss(
-                hudoc_type=args.type,
-                rss_file=args.rss_file,
-                output_dir=args.output_dir,
-                full=args.full,
-                threads=args.threads,
-                conversion_delay=args.conversion_delay,
-                evid=args.evid,
-            )
-        elif "/app/transform/rss" in args.link:
-            process_rss_link(
-                hudoc_type=args.type,
-                link=args.link,
-                output_dir=args.output_dir,
-                full=args.full,
-                threads=args.threads,
-                conversion_delay=args.conversion_delay,
-                evid=args.evid,
-            )
-        else:
-            process_link(
-                hudoc_type=args.type,
-                link=args.link,
-                output_dir=args.output_dir,
-                conversion_delay=args.conversion_delay,
-                evid=args.evid,
-            )
-        logging.info("Document download completed")
+        click.secho(f"Starting download for {type} from {rss_file}", fg="cyan")
+        process_rss(
+            hudoc_type=type,
+            rss_file=rss_file,
+            output_dir=output_dir,
+            limit=limit,
+            threads=threads,
+            conversion_delay=2.0,
+            evid=not plain,
+        )
+        click.secho("Document download completed", fg="green")
     except Exception as e:
-        logging.error(f"An error occurred: {str(e)}")
-        raise
+        click.secho(f"An error occurred: {str(e)}", fg="red")
+        raise click.ClickException(str(e))
 
 
 if __name__ == "__main__":
