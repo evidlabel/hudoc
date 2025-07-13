@@ -7,7 +7,9 @@ from .parser import parse_rss_file
 DEFAULT_LIMIT = 3
 
 
-def process_rss(hudoc_type, rss_file, output_dir, full, threads, conversion_delay, evid=False):
+def process_rss(
+    hudoc_type, rss_file, output_dir, full, threads, conversion_delay, evid=False
+):
     """Process RSS file and download documents in parallel.
 
     Args:

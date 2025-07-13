@@ -39,7 +39,15 @@ def test_process_rss_echr(tmp_path, requests_mock):
         text=html_content,
     )
 
-    process_rss("echr", rss_file, output_dir, full=False, threads=1, conversion_delay=2.0, evid=False)
+    process_rss(
+        "echr",
+        rss_file,
+        output_dir,
+        full=False,
+        threads=1,
+        conversion_delay=2.0,
+        evid=False,
+    )
     output_file = output_dir / f"echr_doc_{doc_id}.txt"
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")

@@ -1,6 +1,5 @@
 import uuid
 
-import pytest
 import yaml
 
 from hudoc.utils import get_document_text, save_text
@@ -32,9 +31,9 @@ def test_get_document_text_direct_success(requests_mock):
     )
     expected = "Test paragraph 1\n\nTest heading\n\nTest paragraph 2"
     assert text == expected
-    assert not any(
-        req.url == rss_link for req in requests_mock.request_history
-    ), "Conversion should not be triggered"
+    assert not any(req.url == rss_link for req in requests_mock.request_history), (
+        "Conversion should not be triggered"
+    )
 
 
 def test_get_document_text_empty_triggers_conversion(requests_mock):
@@ -165,7 +164,6 @@ def test_save_text_grevio(tmp_path):
     )
 
 
-@pytest.mark.skip(reason="fails for now")
 def test_save_evid_echr(tmp_path, monkeypatch):
     """Test saving an ECHR document in evid format."""
     output_dir = tmp_path / "output"

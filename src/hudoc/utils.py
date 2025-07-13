@@ -1,5 +1,6 @@
 import logging
 import os
+import textwrap
 import time
 import urllib.parse
 import uuid
@@ -14,6 +15,7 @@ from .core.constants import SUBSITE_CONFIG
 
 
 def escape_latex(text):
+    """Escape special characters in text for LaTeX compatibility."""
     latex_special_chars = {
         "&": r"\&",
         "%": r"\%",
@@ -32,15 +34,7 @@ def escape_latex(text):
 
 
 def trigger_document_conversion(rss_link, doc_id):
-    """Trigger document conversion by accessing the RSS link URL.
-
-    Args:
-        rss_link (str): The RSS link URL (e.g., https://hudoc.echr.coe.int/eng#{"itemid":"001-123456"}).
-        doc_id (str): Document ID for logging.
-
-    Returns:
-        bool: True if the request was successful, False otherwise.
-    """
+    """Trigger document conversion by accessing the RSS link."""
     if not rss_link:
         logging.warning(f"No RSS link provided for {doc_id}; cannot trigger conversion")
         return False
@@ -57,18 +51,7 @@ def trigger_document_conversion(rss_link, doc_id):
 
 
 def get_document_text(doc_id, base_url, library, rss_link=None, conversion_delay=2.0):
-    """Fetch document text, triggering conversion only if direct download fails.
-
-    Args:
-        doc_id (str): Document ID.
-        base_url (str): Base URL for HTML content.
-        library (str): Library code (e.g., ECHR, GREVIO).
-        rss_link (str, optional): RSS link URL to trigger conversion if needed.
-        conversion_delay (float): Delay (seconds) after triggering conversion.
-
-    Returns:
-        str or None: Extracted text or None if failed.
-    """
+    """Fetch document text, triggering conversion if direct download fails."""
     url = f"{base_url}?library={library}&id={urllib.parse.quote(doc_id)}"
     logging.info(f"Fetching document content for {doc_id} from {url}")
 
@@ -104,7 +87,9 @@ def get_document_text(doc_id, base_url, library, rss_link=None, conversion_delay
                 logging.info(f"Waiting {conversion_delay}s for conversion of {doc_id}")
                 time.sleep(conversion_delay)
             else:
-                logging.warning(f"Conversion trigger failed for {doc_id}; retrying direct download")
+                logging.warning(
+                    f"Conversion trigger failed for {doc_id}; retrying direct download"
+                )
         elif attempt == 2:
             logging.error(f"Failed to fetch content for {doc_id} after 3 attempts")
             return None
@@ -122,19 +107,7 @@ def save_text(
     verdict_date=None,
     evid=False,
 ):
-    """Save the document text in plain text or evid format.
-
-    Args:
-        text (str): Document text to save.
-        doc_id (str): Document ID.
-        title (str): Document title.
-        description (str): Document description.
-        output_dir (str): Directory to save the file.
-        hudoc_type (str): HUDOC subsite (e.g., echr, grevio, ecrml).
-        verdict_date (str, optional): Verdict date in YYYY-MM-DD format.
-        evid (bool): If True, save in evid format (LaTeX and YAML); else plain text.
-
-    """
+    """Save document text in plain text or evid format."""
     prefix = f"{hudoc_type}_doc"
     safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
     filename = f"{prefix}_{safe_id}.txt"
@@ -174,7 +147,7 @@ def save_evid(
     filename,
     verdict_date=None,
 ):
-    print(title)
+    """Save document in evid format with LaTeX and YAML files."""
     subdir = str(uuid.uuid4())
     subdir_path = os.path.join(output_dir, subdir)
     latex_file = os.path.join(subdir_path, "label.tex")
@@ -189,79 +162,74 @@ def save_evid(
     date = verdict_date or datetime.now().strftime("%Y-%m-%d")
 
     # Create LaTeX content with full text
-    latex_content = (
-        r"""\documentclass[parskip=full]{article}
+    template = r"""\documentclass[parskip=full]{{article}}
 \nonstopmode
 
 %% HEADER
-\usepackage{xargs}
-\usepackage{xcolor}
-\usepackage{hyperref}
-\hypersetup{
+\usepackage{{xargs}}
+\usepackage{{xcolor}}
+\usepackage{{hyperref}}
+\hypersetup{{
   colorlinks=true,
   linkcolor=blue,
   anchorcolor=blue,
   filecolor=magenta,
   urlcolor=cyan,
-}
-\usepackage{todonotes}
-\usepackage{etoolbox}
+}}
+\usepackage{{todonotes}}
+\usepackage{{etoolbox}}
 \makeatletter
-\pretocmd{\@startsection}{\gdef\thesectiontype{#1}}{}{}
-\pretocmd{\@sect}{\@namedef{the\thesectiontype title}{#8}}{}{}
-\pretocmd{\@ssect}{\@namedef{the\thesectiontype title}{#5}}{}{}
+\pretocmd{{\@startsection}}{{\gdef\thesectiontype{{#1}}}}{{}}{{}}
+\pretocmd{{\@sect}}{{\@namedef{{the\thesectiontype title}}{{#8}}}}{{}}{{}}
+\pretocmd{{\@ssect}}{{\@namedef{{the\thesectiontype title}}{{#5}}}}{{}}{{}}
 \makeatother
 
 \newwrite\textfile
 \immediate\openout\textfile=\jobname.csv
-\immediate\write\textfile{label ; quote ; note ; section title ; section no ; page ; date ; opage}
+\immediate\write\textfile{{label ; quote ; note ; section title ; section no ; page ; date ; opage}}
 
-\newcommandx{\lb}[3]{\immediate\write\textfile{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}%
-  \csdef{#1}{#2}%
-  \hypertarget{#1}{\textcolor{blue}{#2}}\todo[color=blue!10!white,caption={\small#1; #3; #2}]{#1: #3}%
-}
+\newcommandx{{\lb}}[3]{{\immediate\write\textfile{{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}}%
+  \csdef{{#1}}{{#2}}%
+  \hypertarget{{#1}}{{\textcolor{{blue}}{{#2}}}}\todo[color=blue!10!white,caption={{\small#1; #3; #2}}}{{#1: #3}}%
+}}
 
-\newcommandx{\cc}[1]{
-  \hyperlink{#1}{\csuse{#1}}
-}
+\newcommandx{{\cc}}[1]{{
+  \hyperlink{{#1}}{{\csuse{{#1}}}}
+}}
 
-\newcommand{\sdate}[1]{%
-  \def\localdate{#1}%
-}
+\newcommand{{\sdate}}[1]{{%
+  \def\localdate{{#1}}%
+}}
 
-\newcommand{\pdate}{%
+\newcommand{{\pdate}}{{%
   \localdate%
-}
+}}
 
-\usepackage{scrextend}
+\usepackage{{scrextend}}
 %% HEADER
 
-\begin{document}
+\begin{{document}}
 \maketitle
 
 \tableofcontents
 \listoftodos[Labels]
 
-\sdate{"""
-        + date
-        + r"""}
+\sdate{{{date}}}
 
-\section{"""
-        + safe_id
-        + r"""}
-\subsection{0}
+\section{{{safe_id}}}
+\subsection{{0}}
 
-"""
-        + escaped_text
-        + r"""
+{escaped_text}
 
-\end{document}"""
+\end{{document}}"""
+    latex_content = textwrap.dedent(template).format(
+        date=date, safe_id=safe_id, escaped_text=escaped_text
     )
 
     yaml_content = {
         "authors": hudoc_type,
         "dates": date,
-        "label": f"{description}",
+        "label": description or "No description",
         "original_name": filename,
         "tags": ["hudoc"] + [hudoc_type],
         "time_added": datetime.now().strftime("%Y-%m-%d"),
