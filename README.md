@@ -31,7 +31,7 @@
  Example:
  
  ```sh
- hudoc -t echr -r rss_feed.xml -o output_dir -f -n 5
+ hudoc -t echr -f rss_feed.xml -o output_dir -l 5 -n 10
  ```
  
  ## Documentation
