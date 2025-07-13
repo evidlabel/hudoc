@@ -37,7 +37,7 @@ logger.addHandler(handler)
         "Download documents from HUDOC subsites using an RSS file", fg="cyan"
     ),
     epilog=click.style(
-        "Example: python -m hudoc -t echr -f rss_feed.xml -o output_dir -a -n 5",
+        "Example: python -m hudoc -t echr -f rss_feed.xml -o output_dir -l 5 -n 10",
         fg="cyan",
     ),
 )
@@ -64,11 +64,12 @@ logger.addHandler(handler)
     help=click.style("Directory to save text files (default: data)", fg="white"),
 )
 @click.option(
-    "-a",
-    "--all",
-    "download_all",
-    is_flag=True,
-    help=click.style("Download all documents from RSS (default: top 3)", fg="white"),
+    "-l",
+    "--limit",
+    default=3,
+    show_default=True,
+    type=int,
+    help=click.style("Number of documents to download (0 for all)", fg="white"),
 )
 @click.option(
     "-n",
@@ -81,45 +82,25 @@ logger.addHandler(handler)
     ),
 )
 @click.option(
-    "-d",
-    "--conversion-delay",
-    default=2.0,
-    show_default=True,
-    type=float,
-    help=click.style(
-        "Delay (seconds) after triggering document conversion (default: 2.0)",
-        fg="white",
-    ),
-)
-@click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    help=click.style("Enable verbose logging", fg="white"),
-)
-@click.option(
-    "-e",
-    "--evid",
+    "-p",
+    "--plain",
     is_flag=True,
     help=click.style(
-        "Save output in evid format (LaTeX and YAML), for labelling.", fg="white"
+        "Save output in plain text format (default: evid format for labelling).", fg="white"
     ),
 )
-def main(type, rss_file, output_dir, download_all, threads, conversion_delay, verbose, evid):
+def main(type, rss_file, output_dir, limit, threads, plain):
     """Download documents from HUDOC subsites using RSS file."""
-    if verbose:
-        logger.setLevel(logging.DEBUG)
-
     try:
         click.secho(f"Starting download for {type} from {rss_file}", fg="cyan")
         process_rss(
             hudoc_type=type,
             rss_file=rss_file,
             output_dir=output_dir,
-            download_all=download_all,
+            limit=limit,
             threads=threads,
-            conversion_delay=conversion_delay,
-            evid=evid,
+            conversion_delay=2.0,
+            evid=not plain,
         )
         click.secho("Document download completed", fg="green")
     except Exception as e:

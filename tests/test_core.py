@@ -43,7 +43,7 @@ def test_process_rss_echr(tmp_path, requests_mock):
         "echr",
         rss_file,
         output_dir,
-        download_all=False,
+        limit=3,
         threads=1,
         conversion_delay=2.0,
         evid=False,
