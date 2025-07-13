@@ -6,6 +6,7 @@ import urllib.parse
 import uuid
 from datetime import datetime
 from pathlib import Path
+from string import Template
 
 import requests
 import yaml
@@ -16,19 +17,19 @@ from .core.constants import SUBSITE_CONFIG
 
 def escape_latex(text):
     """Escape special characters in text for LaTeX compatibility."""
-    latex_special_chars = {
-        "&": r"\&",
-        "%": r"\%",
-        "$": r"\$",
-        "#": r"\#",
-        "_": r"\_",
-        "{": r"\{",
-        "}": r"\}",
-        "~": r"\textasciitilde{}",
-        "^": r"\textasciicircum{}",
-        "\\": r"\textbackslash{}",
-    }
-    for char, escaped in latex_special_chars.items():
+    latex_special_chars = [
+        ("\\", r"\textbackslash{}"),  # Backslash first to avoid re-escaping introduced backslashes
+        ("&", r"\&"),
+        ("%", r"\%"),
+        ("$", r"\$"),
+        ("#", r"\#"),
+        ("_", r"\_"),
+        ("{", r"\{"),
+        ("}", r"\}"),
+        ("~", r"\textasciitilde{}"),
+        ("^", r"\textasciicircum{}"),
+    ]
+    for char, escaped in latex_special_chars:
         text = text.replace(char, escaped)
     return text
 
@@ -148,11 +149,22 @@ def save_evid(
     verdict_date=None,
 ):
     """Save document in evid format with LaTeX and YAML files."""
-    subdir = str(uuid.uuid4())
+    unique_name = f"{hudoc_type}_{doc_id}"
+    subdir = str(uuid.uuid5(uuid.NAMESPACE_URL, unique_name))
     subdir_path = os.path.join(output_dir, subdir)
     latex_file = os.path.join(subdir_path, "label.tex")
     yaml_file = os.path.join(subdir_path, "info.yml")
     safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
+
+    # Check if complete files already exist
+    if Path(subdir_path).exists():
+        latex_path = Path(latex_file)
+        yaml_path = Path(yaml_file)
+        if latex_path.exists() and yaml_path.exists():
+            logging.info(f"Evid format for {doc_id} already exists at {subdir_path}, skipping")
+            return
+        else:
+            logging.warning(f"Partial evid files found for {doc_id} at {subdir_path}, overwriting")
 
     # Escape text for LaTeX
     escaped_text = escape_latex(text)
@@ -162,67 +174,67 @@ def save_evid(
     date = verdict_date or datetime.now().strftime("%Y-%m-%d")
 
     # Create LaTeX content with full text
-    template = r"""\documentclass[parskip=full]{{article}}
+    template = r"""\documentclass[parskip=full]{article}
 \nonstopmode
 
 %% HEADER
-\usepackage{{xargs}}
-\usepackage{{xcolor}}
-\usepackage{{hyperref}}
-\hypersetup{{
+\usepackage{xargs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
   colorlinks=true,
   linkcolor=blue,
   anchorcolor=blue,
   filecolor=magenta,
   urlcolor=cyan,
-}}
-\usepackage{{todonotes}}
-\usepackage{{etoolbox}}
+}
+\usepackage{todonotes}
+\usepackage{etoolbox}
 \makeatletter
-\pretocmd{{\@startsection}}{{\gdef\thesectiontype{{#1}}}}{{}}{{}}
-\pretocmd{{\@sect}}{{\@namedef{{the\thesectiontype title}}{{#8}}}}{{}}{{}}
-\pretocmd{{\@ssect}}{{\@namedef{{the\thesectiontype title}}{{#5}}}}{{}}{{}}
+\pretocmd{\@startsection}{{\gdef\thesectiontype{#1}}}{}{}
+\pretocmd{\@sect}{{\@namedef{the\thesectiontype title}{#8}}}{}{}
+\pretocmd{\@ssect}{{\@namedef{the\thesectiontype title}{#5}}}{}{}
 \makeatother
 
 \newwrite\textfile
 \immediate\openout\textfile=\jobname.csv
-\immediate\write\textfile{{label ; quote ; note ; section title ; section no ; page ; date ; opage}}
+\immediate\write\textfile{label ; quote ; note ; section title ; section no ; page ; date ; opage}
 
-\newcommandx{{\lb}}[3]{{\immediate\write\textfile{{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}}%
-  \csdef{{#1}}{{#2}}%
-  \hypertarget{{#1}}{{\textcolor{{blue}}{{#2}}}}\todo[color=blue!10!white,caption={{\small#1; #3; #2}}}{{#1: #3}}%
+\newcommandx{\lb}[3]{{\immediate\write\textfile{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}}%
+  \csdef{#1}{#2}%
+  \hypertarget{#1}{{\textcolor{blue}{#2}}}\todo[color=blue!10!white,caption={{\small#1; #3; #2}}}{#1: #3}%
 }}
 
-\newcommandx{{\cc}}[1]{{
-  \hyperlink{{#1}}{{\csuse{{#1}}}}
+\newcommandx{\cc}[1]{{
+  \hyperlink{#1}{{\csuse{#1}}}
 }}
 
-\newcommand{{\sdate}}[1]{{%
-  \def\localdate{{#1}}%
-}}
+\newcommand{\sdate}[1]{%
+  \def\localdate{#1}%
+}
 
-\newcommand{{\pdate}}{{%
+\newcommand{\pdate}{%
   \localdate%
-}}
+}
 
-\usepackage{{scrextend}}
+\usepackage{scrextend}
 %% HEADER
 
-\begin{{document}}
+\begin{document}
 \maketitle
 
 \tableofcontents
 \listoftodos[Labels]
 
-\sdate{{{date}}}
+\sdate{$date}
 
-\section{{{safe_id}}}
-\subsection{{0}}
+\section{$safe_id}
+\subsection{0}
 
-{escaped_text}
+$escaped_text
 
-\end{{document}}"""
-    latex_content = textwrap.dedent(template).format(
+\end{document}"""
+    latex_content = Template(textwrap.dedent(template)).substitute(
         date=date, safe_id=safe_id, escaped_text=escaped_text
     )
 

@@ -37,7 +37,7 @@ logger.addHandler(handler)
         "Download documents from HUDOC subsites using an RSS file", fg="cyan"
     ),
     epilog=click.style(
-        "Example: python -m hudoc -t echr -r rss_feed.xml -o output_dir -f -n 5",
+        "Example: python -m hudoc -t echr -f rss_feed.xml -o output_dir -a -n 5",
         fg="cyan",
     ),
 )
@@ -49,7 +49,7 @@ logger.addHandler(handler)
     help=click.style("HUDOC subsite (e.g., echr, grevio, ecrml)", fg="white"),
 )
 @click.option(
-    "-r",
+    "-f",
     "--rss-file",
     type=click.Path(exists=True, dir_okay=False),
     required=True,
@@ -64,8 +64,9 @@ logger.addHandler(handler)
     help=click.style("Directory to save text files (default: data)", fg="white"),
 )
 @click.option(
-    "-f",
-    "--full",
+    "-a",
+    "--all",
+    "download_all",
     is_flag=True,
     help=click.style("Download all documents from RSS (default: top 3)", fg="white"),
 )
@@ -104,7 +105,7 @@ logger.addHandler(handler)
         "Save output in evid format (LaTeX and YAML), for labelling.", fg="white"
     ),
 )
-def main(type, rss_file, output_dir, full, threads, conversion_delay, verbose, evid):
+def main(type, rss_file, output_dir, download_all, threads, conversion_delay, verbose, evid):
     """Download documents from HUDOC subsites using RSS file."""
     if verbose:
         logger.setLevel(logging.DEBUG)
@@ -115,7 +116,7 @@ def main(type, rss_file, output_dir, full, threads, conversion_delay, verbose, e
             hudoc_type=type,
             rss_file=rss_file,
             output_dir=output_dir,
-            full=full,
+            download_all=download_all,
             threads=threads,
             conversion_delay=conversion_delay,
             evid=evid,

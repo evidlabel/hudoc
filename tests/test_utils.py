@@ -174,7 +174,7 @@ def test_save_evid_echr(tmp_path, monkeypatch):
 
     # Mock UUID to ensure predictable subdirectory
     fixed_uuid = "123e4567-e89b-12d3-a456-426614174000"
-    monkeypatch.setattr(uuid, "uuid4", lambda: uuid.UUID(fixed_uuid))
+    monkeypatch.setattr(uuid, "uuid5", lambda ns, name: uuid.UUID(fixed_uuid))
 
     save_text(text, doc_id, title, None, output_dir, "echr", evid=True)
 
