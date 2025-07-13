@@ -1,6 +1,6 @@
 [project]
 name = "hudoc"
-version = "0.1.2"
+version = "0.1.3"
 description = "CLI tool for downloading ECHR and GREVIO HUDOC documents"
 authors = [
     { name = "evid", email = "95282593+evidlabel@users.noreply.github.com" },
