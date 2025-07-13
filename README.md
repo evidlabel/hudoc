@@ -10,6 +10,7 @@ A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, G
 - Triggers on-demand document conversion to HTML if direct download fails.
 - Customizable output directory, conversion delay, and verbose logging.
 - Modular codebase with separate modules for parsing, downloading, and processing.
+- Utilizes NumPy for vectorized data operations.
 
 ## Installation
 
@@ -24,8 +25,9 @@ A CLI tool for downloading documents from various HUDOC databases (e.g., ECHR, G
    cd hudoc
    ```
 
-3. **Install dependencies**:
+3. **Create virtual environment and install dependencies**:
    ```bash
+   uv venv
    uv pip install .
    ```
 
@@ -84,7 +86,7 @@ hudoc -t echr -r tests/data/echr_rss.xml -e -d 5
 
 For detailed documentation, build and serve the MkDocs site:
 ```bash
-uv pip install --with dev  # Install dev dependencies
+uv pip install ".[dev]"  # Install dev dependencies
 uv run mkdocs serve
 ```
 Open `http://localhost:8000` in your browser to view the documentation.
@@ -111,12 +113,12 @@ Open `http://localhost:8000` in your browser to view the documentation.
 
 Install development dependencies:
 ```bash
-uv pip install --with dev
+uv pip install ".[dev]"
 ```
 
 Run tests with pytest:
 ```bash
-pytest
+uv run pytest
 ```
 
 Tests use pre-downloaded data in `tests/data/` to simulate real-world inputs. HTTP requests are mocked to avoid live API calls.
@@ -125,12 +127,12 @@ Tests use pre-downloaded data in `tests/data/` to simulate real-world inputs. HT
 
 Check code style with ruff:
 ```bash
-ruff check .
+uv run ruff check .
 ```
 
 Fix linting issues automatically:
 ```bash
-ruff check --fix .
+uv run ruff check --fix .
 ```
 
 ### Contributing

@@ -64,14 +64,14 @@ The `hudoc` codebase is organized for modularity and maintainability:
 
 Install development dependencies:
 ```bash
-uv pip install --with dev
+uv pip install ".[dev]"
 ```
 
 ### Running Tests
 
 Run tests with pytest:
 ```bash
-pytest
+uv run pytest
 ```
 
 Tests use pre-downloaded RSS and HTML files in `tests/data/` to simulate real-world inputs. HTTP requests are mocked using `requests-mock` to avoid live API calls. The test suite covers:
@@ -86,12 +86,12 @@ Note: Some subsite-specific tests (e.g., GREVIO processing) are currently skippe
 
 Run ruff to check code style:
 ```bash
-ruff check .
+uv run ruff check .
 ```
 
 Fix issues automatically:
 ```bash
-ruff check --fix .
+uv run ruff check --fix .
 ```
 
 ### Contributing
@@ -118,4 +118,4 @@ See the [README](../README.md#troubleshooting) for common issues and solutions.
 
 ## License
 
-MIT License. See [LICENSE](../LICENSE) for details.
+MIT License. See [LICENSE](../LICENSE) for details
