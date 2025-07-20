@@ -1,3 +1,5 @@
+ ![Deploy](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)![Version](https://img.shields.io/github/v/release/evidlabel/hudoc)
+ 
  # hudoc
  
  CLI tool for downloading ECHR and GREVIO HUDOC documents
@@ -31,7 +33,7 @@
  Example:
  
  ```sh
- hudoc -t echr -f rss_feed.xml -o output_dir -l 5 -n 10
+ hudoc  -f rss_feed.xml -o output_dir -l 5 -n 10
  ```
  
  ## Documentation

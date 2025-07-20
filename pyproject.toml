@@ -13,7 +13,7 @@ dependencies = [
     "requests>=2.32.3,<3",
     "beautifulsoup4>=4.12.3,<5",
     "pyyaml>=6.0.2,<7",
-    "click>=8.1.7,<9",
+    "rich-click>=1.7.0,<2",  # Updated to use rich-click for CLI
     "numpy>=2.3.0",             # Added for vectorization support
     "pydantic>=2.0.0,<3",       # Added for data modeling
 ]
@@ -27,7 +27,7 @@ dev = [
     "pytest-mock>=3.10.0,<4",
     "requests-mock>=1.10.0,<2",
     "ruff>=0.6.8,<0.7",
-    "mkdocs>=1.5.3,<2",
+    "mkdocs>=1.5.3,<2",  # Preferred for documentation
     "mkdocs-material>=9.5.0,<10",
 ]
 
