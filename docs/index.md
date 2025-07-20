@@ -8,7 +8,7 @@ Welcome to the documentation for `hudoc`, a command-line tool for downloading do
 
 Key features:
 
-- Supports multiple HUDOC subsites (e.g., ECHR, GREVIO, COMMHR, CPT, ECRI, ECRML, ESC, EXEC, FCNM, GRECO, GRETA) with subsite-specific document identifiers.
+- Supports multiple HUDOC subsites (e.g., ECHR, GREVIO, COMMHR, CPT, ECRI, ECRML, ESC, EXEC, FCNM, GRECO, GRETA) with subsite-specific document identifiers. Subsite is auto-detected from RSS file.
 - Triggers on-demand conversion to HTML only if direct download fails or returns empty content.
 - Extracts plain text from HTML documents, preserving formatting.
 - Outputs in plain text or evid format (LaTeX and YAML).

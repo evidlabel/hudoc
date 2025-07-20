@@ -33,7 +33,7 @@ hudoc --help
 Example:
 
 ```sh
-hudoc  -f rss_feed.xml -o output_dir -l 5 -n 10
+hudoc rss_feed.xml -o output_dir -l 5 -n 10
 ```
 
 ## Documentation

@@ -2,7 +2,7 @@
 
 ## RSS Parsing
 
-The `parse_rss_file` function uses `xml.etree.ElementTree` to parse RSS feeds, extracting subsite-specific document IDs (e.g., `itemid` for ECHR, `greviosectionid` for GREVIO, `ecrmlid` for ECRML) from link fragments. It handles malformed XML and missing fields gracefully.
+The `parse_rss_file` function uses `xml.etree.ElementTree` to parse RSS feeds, extracting subsite-specific document IDs (e.g., `itemid` for ECHR, `greviosectionid` for GREVIO, `ecrmlid` for ECRML) from link fragments. It handles malformed XML and missing fields gracefully. Subsite is auto-detected from the URL in the RSS file.
 
 ## Document Downloading
 
