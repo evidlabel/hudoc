@@ -1,9 +1,7 @@
-import click
+import rich_click as click
 import logging
 
-from .core.constants import VALID_SUBSITES
 from .core.processor import process_rss
-
 
 # Custom logger to use Click's colored output
 class ClickHandler(logging.Handler):
@@ -22,7 +20,6 @@ class ClickHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-
 # Configure logging with ClickHandler
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,30 +27,20 @@ handler = ClickHandler()
 handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
 logger.addHandler(handler)
 
-
 @click.command(
     context_settings={"help_option_names": ["-h", "--help"]},
     help=click.style(
         "Download documents from HUDOC subsites using an RSS file", fg="cyan"
     ),
     epilog=click.style(
-        "Example: python -m hudoc -t echr -f rss_feed.xml -o output_dir -l 5 -n 10",
+        "Example: python -m hudoc rss_feed.xml -o output_dir -l 5 -n 10",
         fg="cyan",
     ),
 )
-@click.option(
-    "-t",
-    "--type",
-    type=click.Choice(VALID_SUBSITES),
-    required=True,
-    help=click.style("HUDOC subsite (e.g., echr, grevio, ecrml)", fg="white"),
-)
-@click.option(
-    "-f",
-    "--rss-file",
+@click.argument(
+    "rss_file",
     type=click.Path(exists=True, dir_okay=False),
     required=True,
-    help=click.style("Path to RSS file", fg="white"),
 )
 @click.option(
     "-o",
@@ -86,15 +73,15 @@ logger.addHandler(handler)
     "--plain",
     is_flag=True,
     help=click.style(
-        "Save output in plain text format (default: evid format for labelling).", fg="white"
+        "Save output in plain text format (default: evid format for labelling).",
+        fg="white",
     ),
 )
-def main(type, rss_file, output_dir, limit, threads, plain):
+def main(rss_file, output_dir, limit, threads, plain):
     """Download documents from HUDOC subsites using RSS file."""
     try:
-        click.secho(f"Starting download for {type} from {rss_file}", fg="cyan")
+        click.secho(f"Starting download from {rss_file}", fg="cyan")
         process_rss(
-            hudoc_type=type,
             rss_file=rss_file,
             output_dir=output_dir,
             limit=limit,
@@ -106,7 +93,6 @@ def main(type, rss_file, output_dir, limit, threads, plain):
     except Exception as e:
         click.secho(f"An error occurred: {str(e)}", fg="red")
         raise click.ClickException(str(e))
-
 
 if __name__ == "__main__":
     main()

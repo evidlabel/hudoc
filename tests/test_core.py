@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 from hudoc.core.parser import parse_rss_file
 from hudoc.core.processor import process_rss
 
@@ -8,7 +7,8 @@ from hudoc.core.processor import process_rss
 def test_parse_rss_file_echr():
     """Test parsing an ECHR RSS file."""
     rss_file = Path("tests/data/echr_rss.xml")
-    items = parse_rss_file(rss_file, "echr")
+    subsite, items = parse_rss_file(rss_file)  # Fixed to call with one argument
+    assert subsite == "echr"  # Assuming subsite detection
     assert len(items) == 1
     assert items[0]["doc_id"] == "001-123456"
     assert items[0]["title"] == "CASE OF TEST v. TEST"
@@ -18,7 +18,8 @@ def test_parse_rss_file_echr():
 def test_parse_rss_file_grevio():
     """Test parsing a GREVIO RSS file."""
     rss_file = Path("tests/data/grevio_rss.xml")
-    items = parse_rss_file(rss_file, "grevio")
+    subsite, items = parse_rss_file(rss_file)  # Fixed to call with one argument
+    assert subsite == "grevio"  # Assuming subsite detection
     assert len(items) == 1
     assert items[0]["doc_id"] == "TEST-2023-1"
     assert items[0]["title"] == "Test Report"
@@ -39,10 +40,9 @@ def test_process_rss_echr(tmp_path, requests_mock):
         text=html_content,
     )
 
-    process_rss(
-        "echr",
-        rss_file,
-        output_dir,
+    process_rss(  # Fixed to call with correct arguments
+        rss_file=rss_file,
+        output_dir=output_dir,
         limit=3,
         threads=1,
         conversion_delay=2.0,
