@@ -17,11 +17,38 @@ from .core.constants import SUBSITE_CONFIG
 from .models import EvidMetadata
 
 
-def clean_text_for_latex(text: str) -> str:
-    """Clean text for LaTeX by escaping special characters and normalizing newlines."""
-    text = re.sub(r"([#%&])", r"\\\1", text)
+def clean_text_for_typst(text: str) -> str:
+    """Clean text for Typst by escaping special characters and normalizing newlines."""
     text = re.sub(r"(\n\s*\n)+", r"\n\n", text)
-    return text
+    escapes = {
+        "\\": "\\\\",
+        "#": "\\#",
+        "*": "\\*",
+        "_": "\\_",
+        "~": "\\~",
+        "^": "\\^",
+        "`": "\\`",
+        '"': '\\"',
+        "$": "\\$",
+        "<": "\\<",
+        ">": "\\>",
+    }
+    return "".join(escapes.get(c, c) for c in text)
+
+
+def typst_dict(d: dict) -> str:
+    """Convert Python dict to Typst dict string."""
+    parts = []
+    for k, v in d.items():
+        if isinstance(v, str):
+            escaped_v = v.replace('"', '\\"')
+            parts.append(f'{k}: "{escaped_v}"')
+        elif isinstance(v, list):
+            items = ", ".join(f'"{item.replace("\"", "\\\"")}"' for item in v)
+            parts.append(f"{k}: ({items})")
+        else:
+            parts.append(f"{k}: {v}")
+    return "(" + ", ".join(parts) + ")"
 
 
 def trigger_document_conversion(rss_link, doc_id):
@@ -138,19 +165,19 @@ def save_evid(
     filename,
     verdict_date=None,
 ):
-    """Save document in evid format with LaTeX and YAML files."""
+    """Save document in evid format with Typst and YAML files."""
     unique_name = f"{hudoc_type}_{doc_id}"
     subdir = str(uuid.uuid5(uuid.NAMESPACE_URL, unique_name))
     subdir_path = os.path.join(output_dir, subdir)
-    latex_file = os.path.join(subdir_path, "label.tex")
+    typst_file = os.path.join(subdir_path, "label.typ")
     yaml_file = os.path.join(subdir_path, "info.yml")
     safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
 
     # Check if complete files already exist
     if Path(subdir_path).exists():
-        latex_path = Path(latex_file)
+        typst_path = Path(typst_file)
         yaml_path = Path(yaml_file)
-        if latex_path.exists() and yaml_path.exists():
+        if typst_path.exists() and yaml_path.exists():
             logging.info(
                 f"Evid format for {doc_id} already exists at {subdir_path}, skipping"
             )
@@ -160,8 +187,8 @@ def save_evid(
                 f"Partial evid files found for {doc_id} at {subdir_path}, overwriting"
             )
 
-    # Clean text for LaTeX
-    cleaned_text = clean_text_for_latex(text)
+    # Clean text for Typst
+    cleaned_text = clean_text_for_typst(text)
 
     # Create YAML metadata
     id_key = SUBSITE_CONFIG[hudoc_type]["id_key"]
@@ -180,80 +207,35 @@ def save_evid(
     )
     yaml_content = metadata.model_dump()
 
-    # Create LaTeX content with full text
-    template = r"""\documentclass[parskip=full]{article}
-\nonstopmode
+    # Create Typst content with metadata in mset
 
-%% HEADER
-\usepackage{xargs}
-\usepackage{xcolor}
-\usepackage{hyperref}
-\hypersetup{
-  colorlinks=true,
-  linkcolor=blue,
-  anchorcolor=blue,
-  filecolor=magenta,
-  urlcolor=cyan,
-}
-\usepackage{todonotes}
-\usepackage{etoolbox}
-\makeatletter
-\pretocmd{\@startsection}{\gdef\thesectiontype{#1}}{}{}
-\pretocmd{\@sect}{\@namedef{the\thesectiontype title}{#8}}{}{}
-\pretocmd{\@ssect}{\@namedef{the\thesectiontype title}{#5}}{}{}
-\makeatother
+    yaml_content["date"] = date
+    yaml_content["title"] = description
 
-\newwrite\textfile
-\immediate\openout\textfile=\jobname.csv
-\immediate\write\textfile{label ; quote ; note ; section title ; section no ; page ; date ; opage}
+    mset_str = typst_dict(yaml_content)
+    template = r"""#import "@local/labtyp:0.1.0": lablist, lab, mset
 
+#mset(values: $mset_str)
 
-\newcommandx{\lb}[3]{\immediate\write\textfile{#1 \space; #2 \space; #3 \space; \thesectiontitle \space;  \thesection  \space;  \thepage  \space;  \pdate \space; \thesubsectiontitle}%
-  \csdef{#1}{#2}%
-  \hypertarget{#1}{\textcolor{blue}{#2}}\todo[color=blue!10!white,caption={\small#1; #3; #2}]{#1: #3}%
-}
+#outline()
 
-\newcommandx{\cc}[1]{
-  \hyperlink{#1}{\csuse{#1}}
-}
-
-
-\newcommand{\sdate}[1]{%
-  \def\localdate{#1}%
-}
-
-\newcommand{\pdate}{%
-  \localdate%
-}
-
-\usepackage{scrextend}
-%% HEADER
-
-% \title{}
-
-\begin{document}
-% \maketitle
-
-\tableofcontents
-\listoftodos[Labels]
-
-\sdate{$date}
-
-\section{$safe_id}
-\subsection{0}
+= $safe_id
 
 $cleaned_text
 
-\end{document}"""
+= List of Labels
+#lablist()
+"""
+    mset_str
 
-    latex_content = Template(textwrap.dedent(template)).substitute(
-        date=date, safe_id=safe_id, cleaned_text=cleaned_text
+    typst_content = Template(textwrap.dedent(template)).substitute(
+        mset_str=mset_str, safe_id=safe_id, cleaned_text=cleaned_text
     )
 
     try:
         Path(subdir_path).mkdir(parents=True, exist_ok=True)
-        with open(latex_file, "w", encoding="utf-8") as f:
-            f.write(latex_content)
+        with open(typst_file, "w", encoding="utf-8") as f:
+            f.write(typst_content)
         with open(yaml_file, "w", encoding="utf-8") as f:
             yaml.dump(yaml_content, f, allow_unicode=True, default_style="'")
         logging.info(f"Saved evid format for {doc_id} to {subdir_path}")

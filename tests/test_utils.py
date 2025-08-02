@@ -179,14 +179,14 @@ def test_save_evid_echr(tmp_path, monkeypatch):
     save_text(text, doc_id, title, None, output_dir, "echr", evid=True)
 
     subdir_path = output_dir / fixed_uuid
-    latex_file = subdir_path / "label.tex"
+    typst_file = subdir_path / "label.typ"
     yaml_file = subdir_path / "info.yml"
 
-    assert latex_file.exists()
+    assert typst_file.exists()
     assert yaml_file.exists()
 
-    latex_content = latex_file.read_text(encoding="utf-8")
-    assert r"Test content with special chars: \# \% \&" in latex_content
+    typst_content = typst_file.read_text(encoding="utf-8")
+    assert "Test content with special chars: \\# % &" in typst_content
 
     with open(yaml_file, encoding="utf-8") as f:
         yaml_content = yaml.safe_load(f)
@@ -194,3 +194,4 @@ def test_save_evid_echr(tmp_path, monkeypatch):
     assert yaml_content["original_name"] == filename
     assert yaml_content["uuid"] == fixed_uuid
     assert yaml_content["title"] == "Test Case"
+
