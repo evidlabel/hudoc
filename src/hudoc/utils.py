@@ -207,12 +207,12 @@ def save_evid(
     )
     yaml_content = metadata.model_dump()
 
-    # Create Typst content with metadata in mset
+    # Create dict for Typst mset with overrides
+    mset_dict = yaml_content.copy()
+    mset_dict["date"] = date
+    mset_dict["title"] = description
+    mset_str = typst_dict(mset_dict)
 
-    yaml_content["date"] = date
-    yaml_content["title"] = description
-
-    mset_str = typst_dict(yaml_content)
     template = r"""#import "@local/labtyp:0.1.0": lablist, lab, mset
 
 #mset(values: $mset_str)
@@ -226,7 +226,6 @@ $cleaned_text
 = List of Labels
 #lablist()
 """
-    mset_str
 
     typst_content = Template(textwrap.dedent(template)).substitute(
         mset_str=mset_str, safe_id=safe_id, cleaned_text=cleaned_text
@@ -241,3 +240,4 @@ $cleaned_text
         logging.info(f"Saved evid format for {doc_id} to {subdir_path}")
     except OSError as e:
         logging.error(f"Failed to save evid files for {doc_id}: {str(e)}")
+
