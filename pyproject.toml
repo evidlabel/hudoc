@@ -23,6 +23,7 @@ hudoc = "hudoc.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=7.4.0,<8",
+    "pytest-cov>=4.0.0,<5",     # Added for coverage reporting
     "pytest-mock>=3.10.0,<4",
     "requests-mock>=1.10.0,<2",
     "ruff>=0.6.8,<0.7",
