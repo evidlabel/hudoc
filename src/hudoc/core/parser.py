@@ -17,7 +17,8 @@ def parse_rss_file(rss_file):
             return None, []  # subsite, items
 
         # Detect subsite from the first item's link
-        first_link = items[0].find("link").text
+        link_elem = items[0].find("link")
+        first_link = link_elem.text if link_elem is not None else None
         if first_link:
             # Extract subsite from URL, e.g., 'echr' from 'hudoc.echr.coe.int'
             parsed_url = urllib.parse.urlparse(first_link)
@@ -34,9 +35,22 @@ def parse_rss_file(rss_file):
 
         parsed_items = []
         for item in items:
-            link = item.find("link").text
-            title = item.find("title").text or "Untitled"
-            description = item.find("description").text or "No description"
+            link_elem = item.find("link")
+            link = link_elem.text if link_elem is not None else None
+            if not link:
+                logging.warning("Item has no link; skipping")
+                continue
+
+            title_elem = item.find("title")
+            title = title_elem.text if title_elem is not None else "Untitled"
+
+            description_elem = item.find("description")
+            description = (
+                description_elem.text
+                if description_elem is not None
+                else "No description"
+            )
+
             pub_date_elem = item.find("pubDate")
             verdict_date = None
             if pub_date_elem is not None and pub_date_elem.text:
