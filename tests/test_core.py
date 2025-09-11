@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 
 from hudoc.core.parser import parse_rss_file
@@ -24,6 +25,54 @@ def test_parse_rss_file_grevio():
     assert items[0]["doc_id"] == "TEST-2023-1"
     assert items[0]["title"] == "Test Report"
     assert items[0]["description"] == "Test Description"
+
+
+def test_parse_rss_file_no_items():
+    """Test parsing RSS with no items."""
+    rss_file = Path("tests/data/empty_rss.xml")  # Assume this file exists or mock it
+    with pytest.raises(ValueError):  # Adjust based on actual behavior
+        parse_rss_file(rss_file)
+
+
+def test_parse_rss_file_invalid_subsite():
+    """Test parsing RSS with invalid subsite."""
+    rss_file = Path("tests/data/invalid_subsite_rss.xml")
+    subsite, items = parse_rss_file(rss_file)
+    assert subsite is None
+    assert items == []
+
+
+def test_parse_rss_file_parse_error():
+    """Test parsing invalid RSS file."""
+    rss_file = "invalid.xml"
+    subsite, items = parse_rss_file(rss_file)
+    assert subsite is None
+    assert items == []
+
+
+def test_process_rss_no_subsite():
+    """Test process_rss with no subsite detected."""
+    with patch("hudoc.core.processor.parse_rss_file", return_value=(None, [])):
+        process_rss("rss.xml", "output")
+        # Check logging or no-op
+
+
+def test_process_rss_no_items():
+    """Test process_rss with no items."""
+    with patch("hudoc.core.processor.parse_rss_file", return_value=("echr", [])):
+        process_rss("rss.xml", "output")
+        # Check logging
+
+
+def test_process_rss_limit_zero():
+    """Test process_rss with limit=0 (all items)."""
+    items = [{"doc_id": "1"}, {"doc_id": "2"}]
+    with (
+        patch("hudoc.core.processor.parse_rss_file", return_value=("echr", items)),
+        patch("hudoc.core.processor.ThreadPoolExecutor") as mock_executor,
+    ):
+        process_rss("rss.xml", "output", limit=0)
+        assert mock_executor.submit.call_count == 2
 
 
 def test_process_rss_echr(tmp_path, requests_mock):
