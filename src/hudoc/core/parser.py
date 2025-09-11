@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
 from .constants import SUBSITE_CONFIG, VALID_SUBSITES
 
+
 def parse_rss_file(rss_file):
     """Parse RSS file and detect subsite from URLs."""
     try:
@@ -20,11 +21,13 @@ def parse_rss_file(rss_file):
         if first_link:
             # Extract subsite from URL, e.g., 'echr' from 'hudoc.echr.coe.int'
             parsed_url = urllib.parse.urlparse(first_link)
-            host_parts = parsed_url.hostname.split('.')
+            host_parts = parsed_url.hostname.split(".")
             if len(host_parts) >= 3 and host_parts[1] in VALID_SUBSITES:
                 subsite = host_parts[1]  # e.g., 'echr'
             else:
-                raise ValueError(f"Invalid or unrecognized subsite in URL: {first_link}")
+                raise ValueError(
+                    f"Invalid or unrecognized subsite in URL: {first_link}"
+                )
             id_key = SUBSITE_CONFIG[subsite]["id_key"]
         else:
             raise ValueError("First item has no link to detect subsite")
@@ -49,18 +52,22 @@ def parse_rss_file(rss_file):
                 data = json.loads(fragment)
                 doc_id = data.get(id_key, [None])[0]  # Use detected id_key
                 if doc_id:
-                    parsed_items.append({
-                        "doc_id": doc_id,
-                        "title": title,
-                        "description": description,
-                        "verdict_date": verdict_date,
-                        "rss_link": link,
-                    })
+                    parsed_items.append(
+                        {
+                            "doc_id": doc_id,
+                            "title": title,
+                            "description": description,
+                            "verdict_date": verdict_date,
+                            "rss_link": link,
+                        }
+                    )
             except (IndexError, json.JSONDecodeError, KeyError, ValueError) as e:
                 logging.warning(f"Failed to parse item from link {link}: {str(e)}")
                 continue
 
-        logging.info(f"Parsed {len(parsed_items)} items from RSS file for subsite {subsite}")
+        logging.info(
+            f"Parsed {len(parsed_items)} items from RSS file for subsite {subsite}"
+        )
         return subsite, parsed_items
     except ET.ParseError as e:
         logging.error(f"Failed to parse RSS file: {str(e)}")

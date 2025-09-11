@@ -44,7 +44,7 @@ def typst_dict(d: dict) -> str:
             escaped_v = v.replace('"', '\\"')
             parts.append(f'{k}: "{escaped_v}"')
         elif isinstance(v, list):
-            items = ", ".join(f'"{item.replace("\"", "\\\"")}"' for item in v)
+            items = ", ".join(f'"{item.replace('"', '\\"')}"' for item in v)
             parts.append(f"{k}: ({items})")
         else:
             parts.append(f"{k}: {v}")
@@ -240,4 +240,3 @@ $cleaned_text
         logging.info(f"Saved evid format for {doc_id} to {subdir_path}")
     except OSError as e:
         logging.error(f"Failed to save evid files for {doc_id}: {str(e)}")
-

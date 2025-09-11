@@ -4,7 +4,10 @@ from concurrent.futures import ThreadPoolExecutor
 from .downloader import download_document
 from .parser import parse_rss_file
 
-def process_rss(rss_file, output_dir, limit=3, threads=10, conversion_delay=2.0, evid=False):
+
+def process_rss(
+    rss_file, output_dir, limit=3, threads=10, conversion_delay=2.0, evid=False
+):
     """Process RSS file, detect subsite, and download documents in parallel."""
     subsite, items = parse_rss_file(rss_file)
     if not subsite:

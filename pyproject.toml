@@ -13,7 +13,6 @@ dependencies = [
     "requests>=2.32.3,<3",
     "beautifulsoup4>=4.12.3,<5",
     "pyyaml>=6.0.2,<7",
-    "rich-click>=1.7.0,<2",  # Updated to use rich-click for CLI
     "numpy>=2.3.0",             # Added for vectorization support
     "pydantic>=2.0.0,<3",       # Added for data modeling
 ]

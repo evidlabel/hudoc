@@ -194,4 +194,3 @@ def test_save_evid_echr(tmp_path, monkeypatch):
     assert yaml_content["original_name"] == filename
     assert yaml_content["uuid"] == fixed_uuid
     assert yaml_content["title"] == "Test Case"
-
