@@ -2,7 +2,13 @@ import uuid
 
 import yaml
 
-from hudoc.utils import get_document_text, save_text
+from hudoc.utils import (
+    get_document_text,
+    save_text,
+    trigger_document_conversion,
+    clean_text_for_typst,
+    typst_dict,
+)
 
 
 def test_get_document_text_direct_success(requests_mock):
@@ -131,6 +137,34 @@ def test_get_document_text_empty_no_rss_link(requests_mock):
     assert text is None
 
 
+def test_trigger_document_conversion_no_link():
+    """Test trigger_document_conversion with no RSS link."""
+    assert not trigger_document_conversion(None, "test")
+
+
+def test_trigger_document_conversion_failure(requests_mock):
+    """Test trigger_document_conversion failure."""
+    rss_link = "https://example.com"
+    requests_mock.get(rss_link, status_code=500)
+    assert not trigger_document_conversion(rss_link, "test")
+
+
+def test_clean_text_for_typst():
+    """Test clean_text_for_typst function."""
+    text = 'Test # * _ ~ ^ ` " $ < > \n\n'
+    cleaned = clean_text_for_typst(text)
+    assert cleaned == 'Test \\# \\* \\_ \\~ \\^ \\` \\" \\$ \\< \\>\n\n'
+
+
+def test_typst_dict():
+    """Test typst_dict conversion."""
+    d = {"key": 'value "escaped"', "list": ["item1", "item2"], "num": 42}
+    result = typst_dict(d)
+    assert 'key: "value "escaped""' in result
+    assert 'list: ("item1", "item2")' in result
+    assert "num: 42" in result
+
+
 def test_save_text_echr(tmp_path):
     """Test saving an ECHR document to a file."""
     output_dir = tmp_path / "output"
@@ -194,3 +228,11 @@ def test_save_evid_echr(tmp_path, monkeypatch):
     assert yaml_content["original_name"] == filename
     assert yaml_content["uuid"] == fixed_uuid
     assert yaml_content["title"] == "Test Case"
+
+
+def test_save_text_oserror(tmp_path, monkeypatch):
+    """Test save_text with OSError."""
+    output_dir = tmp_path / "output"
+    monkeypatch.setattr("builtins.open", side_effect=OSError("Test error"))
+    save_text("text", "doc_id", "title", None, output_dir, "echr")
+    # Check logging error
