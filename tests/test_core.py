@@ -97,9 +97,11 @@ def test_parse_rss_file_item_no_link():
     mock_root = MagicMock()
     mock_root.findall.return_value = [
         MagicMock(
-            find=lambda tag: MagicMock(text="https://hudoc.echr.coe.int/eng#test")
+            find=lambda tag: MagicMock(
+                text='https://hudoc.echr.coe.int/eng#{"itemid":["test"]}'
+            )
             if tag == "link"
-            else None
+            else MagicMock(text="test")
         ),
         mock_item,
     ]
@@ -122,7 +124,7 @@ def test_parse_rss_file_invalid_pubdate():
     def find_side_effect(tag):
         if tag == "link":
             elem = MagicMock()
-            elem.text = 'https://hudoc.echr.coe.int/eng#{"itemid":"test"}'
+            elem.text = 'https://hudoc.echr.coe.int/eng#{"itemid":["test"]}'
             return elem
         if tag == "pubDate":
             elem = MagicMock()
