@@ -208,7 +208,7 @@ def test_trigger_document_conversion_failure(requests_mock):
     with patch("hudoc.utils.logging") as mock_logging:
         assert not trigger_document_conversion(rss_link, "test")
         mock_logging.error.assert_called_with(
-            "Failed to trigger conversion for test: 500 Server Error: None for url: https://example.com"
+            "Failed to trigger conversion for test: 500 Server Error: None for url: https://example.com/"
         )
 
 
