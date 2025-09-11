@@ -37,8 +37,9 @@ def test_download_callback_exception():
         mock_exit.assert_called_with(1)
 
 
-def test_main():
+def test_main(capsys):
     """Test main function runs the CLI."""
-    with patch("hudoc.cli.app.run") as mock_run, patch("sys.argv", ["hudoc", "--help"]):
+    with patch("sys.argv", ["hudoc", "--help"]):
         main()
-        mock_run.assert_called_once()
+    captured = capsys.readouterr()
+    assert "hudoc" in captured.out
