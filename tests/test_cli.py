@@ -1,11 +1,15 @@
 from unittest.mock import patch
 
-from hudoc.cli import download_callback, main
+from hudoc.cli import main, download_callback
 
 
 def test_download_callback_file_not_exist():
     """Test download_callback when RSS file does not exist."""
-    with patch("sys.exit") as mock_exit, patch("hudoc.cli.logging") as mock_logging:
+    with (
+        patch("sys.exit") as mock_exit,
+        patch("hudoc.cli.logging") as mock_logging,
+        patch("hudoc.cli.Path.is_file", return_value=False),
+    ):
         download_callback("nonexistent.xml")
         mock_logging.error.assert_called_with(
             "RSS file 'nonexistent.xml' does not exist or is not a file."
