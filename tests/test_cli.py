@@ -1,6 +1,13 @@
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 from hudoc.cli import main, download_callback
+
+sys.path.append(
+    str(Path(__file__).resolve().parent.parent.parent / ".." / "treeparse" / "src")
+)
+
 
 
 def test_download_callback_file_not_exist():
@@ -32,6 +39,6 @@ def test_download_callback_exception():
 
 def test_main():
     """Test main function runs the CLI."""
-    with patch("hudoc.cli.app.run") as mock_run, patch("sys.argv", ["hudoc"]):
+    with patch("hudoc.cli.app.run") as mock_run, patch("sys.argv", ["hudoc", "--help"]):
         main()
         mock_run.assert_called_once()
