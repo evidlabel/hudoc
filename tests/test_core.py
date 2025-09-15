@@ -149,7 +149,7 @@ def test_parse_rss_file_invalid_pubdate():
         assert subsite == "echr"
         assert len(items) == 1
         mock_logging.warning.assert_called_with(
-            "Failed to parse pubDate: time data 'invalid date' does not match format '%a, %d %b %Y %H:%M:%S %z'"
+            'Failed to parse pubDate: Invalid date value or format "invalid date"'
         )
 
 

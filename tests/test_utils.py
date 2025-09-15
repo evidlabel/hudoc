@@ -203,7 +203,7 @@ def test_trigger_document_conversion_no_link():
 
 def test_trigger_document_conversion_failure(requests_mock):
     """Test trigger_document_conversion failure."""
-    rss_link = "https://example.com"
+    rss_link = "https://example.com/"
     requests_mock.get(rss_link, status_code=500)
     with patch("hudoc.utils.logging") as mock_logging:
         assert not trigger_document_conversion(rss_link, "test")
