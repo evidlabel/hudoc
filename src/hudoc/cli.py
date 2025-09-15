@@ -46,11 +46,11 @@ def list_callback(rss_file):
     if not items:
         logging.info("No items found in RSS file")
     else:
-        print(f"Subsite: {subsite}")
-        print(f"Number of items: {len(items)}")
         print("Document IDs:")
         for item in items:
             print(f"- {item['doc_id']} (Title: {item['title']})")
+        print(f"Subsite: {subsite}")
+        print(f"Number of items: {len(items)}")
 
 
 app = cli(
