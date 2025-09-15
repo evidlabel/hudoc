@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 from unittest.mock import patch
+import pytest
 
 from hudoc.cli import main, download_callback
 
@@ -39,7 +40,8 @@ def test_download_callback_exception():
 
 def test_main(capsys):
     """Test main function runs the CLI."""
-    with patch("sys.argv", ["hudoc", "--help"]):
+    with patch("sys.argv", ["hudoc", "--help"]), pytest.raises(SystemExit) as excinfo:
         main()
+    assert excinfo.value.code == 0
     captured = capsys.readouterr()
     assert "hudoc" in captured.out
