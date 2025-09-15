@@ -13,7 +13,6 @@ dependencies = [
     "requests>=2.32.3,<3",
     "beautifulsoup4>=4.12.3,<5",
     "pyyaml>=6.0.2,<7",
-    "rich-click>=1.7.0,<2",  # Updated to use rich-click for CLI
     "numpy>=2.3.0",             # Added for vectorization support
     "pydantic>=2.0.0,<3",       # Added for data modeling
 ]
@@ -24,6 +23,7 @@ hudoc = "hudoc.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=7.4.0,<8",
+    "pytest-cov>=4.0.0,<5",     # Added for coverage reporting
     "pytest-mock>=3.10.0,<4",
     "requests-mock>=1.10.0,<2",
     "ruff>=0.6.8,<0.7",

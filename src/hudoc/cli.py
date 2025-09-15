@@ -1,86 +1,24 @@
-import rich_click as click
 import logging
+import sys
+from pathlib import Path
+
+# Add treeparse to sys.path
+sys.path.append(
+    str(Path(__file__).resolve().parent.parent.parent / ".." / "treeparse" / "src")
+)
+
+from treeparse import cli, command, argument, option
 
 from .core.processor import process_rss
 
-# Custom logger to use Click's colored output
-class ClickHandler(logging.Handler):
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            level = record.levelname
-            if level == "DEBUG":
-                click.secho(msg, fg="blue")
-            elif level == "INFO":
-                click.secho(msg, fg="green")
-            elif level == "WARNING":
-                click.secho(msg, fg="yellow")
-            elif level == "ERROR":
-                click.secho(msg, fg="red")
-        except Exception:
-            self.handleError(record)
 
-# Configure logging with ClickHandler
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-handler = ClickHandler()
-handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
-logger.addHandler(handler)
-
-@click.command(
-    context_settings={"help_option_names": ["-h", "--help"]},
-    help=click.style(
-        "Download documents from HUDOC subsites using an RSS file", fg="cyan"
-    ),
-    epilog=click.style(
-        "Example: python -m hudoc rss_feed.xml -o output_dir -l 5 -n 10",
-        fg="cyan",
-    ),
-)
-@click.argument(
-    "rss_file",
-    type=click.Path(exists=True, dir_okay=False),
-    required=True,
-)
-@click.option(
-    "-o",
-    "--output-dir",
-    default="data",
-    show_default=True,
-    type=click.Path(file_okay=False, writable=True),
-    help=click.style("Directory to save text files (default: data)", fg="white"),
-)
-@click.option(
-    "-l",
-    "--limit",
-    default=3,
-    show_default=True,
-    type=int,
-    help=click.style("Number of documents to download (0 for all)", fg="white"),
-)
-@click.option(
-    "-n",
-    "--threads",
-    default=10,
-    show_default=True,
-    type=int,
-    help=click.style(
-        "Number of threads for parallel downloading (default: 10)", fg="white"
-    ),
-)
-@click.option(
-    "-p",
-    "--plain",
-    is_flag=True,
-    help=click.style(
-        "Save output in plain text format (default: evid format for labelling).",
-        fg="white",
-    ),
-)
-def main(rss_file, output_dir, limit, threads, plain):
-    """Download documents from HUDOC subsites using RSS file."""
+def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=False):
+    """Callback for download command."""
+    if not Path(rss_file).is_file():
+        logging.error(f"RSS file '{rss_file}' does not exist or is not a file.")
+        sys.exit(1)
     try:
-        click.secho(f"Starting download from {rss_file}", fg="cyan")
+        logging.info(f"Starting download from {rss_file}")
         process_rss(
             rss_file=rss_file,
             output_dir=output_dir,
@@ -89,10 +27,71 @@ def main(rss_file, output_dir, limit, threads, plain):
             conversion_delay=2.0,
             evid=not plain,
         )
-        click.secho("Document download completed", fg="green")
+        logging.info("Document download completed")
     except Exception as e:
-        click.secho(f"An error occurred: {str(e)}", fg="red")
-        raise click.ClickException(str(e))
+        logging.error(f"An error occurred: {str(e)}")
+        sys.exit(1)
+
+
+app = cli(
+    name="hudoc",
+    help="Download documents from HUDOC subsites using an RSS file.\nExample: hudoc download rss_feed.xml -o output_dir -l 5 -n 10",
+    max_width=120,
+    show_types=True,
+    show_defaults=True,
+    line_connect=True,
+)
+
+download_cmd = command(
+    name="download",
+    help="Download documents from HUDOC subsites using RSS file.",
+    callback=download_callback,
+    arguments=[
+        argument(
+            name="rss_file",
+            arg_type=str,
+            help="Path to the RSS file",
+            sort_key=0,
+        ),
+    ],
+    options=[
+        option(
+            flags=["--output-dir", "-o"],
+            default="data",
+            help="Directory to save text files (default: data)",
+            arg_type=str,
+            sort_key=0,
+        ),
+        option(
+            flags=["--limit", "-l"],
+            default=3,
+            help="Number of documents to download (0 for all) (default: 3)",
+            arg_type=int,
+            sort_key=1,
+        ),
+        option(
+            flags=["--threads", "-n"],
+            default=10,
+            help="Number of threads for parallel downloading (default: 10)",
+            arg_type=int,
+            sort_key=2,
+        ),
+        option(
+            flags=["--plain", "-p"],
+            default=False,
+            help="Save output in plain text format (default: evid format for labelling).",
+            arg_type=bool,
+            sort_key=3,
+        ),
+    ],
+)
+
+app.commands.append(download_cmd)
+
+
+def main():
+    app.run()
+
 
 if __name__ == "__main__":
     main()
