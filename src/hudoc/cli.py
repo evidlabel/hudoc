@@ -10,6 +10,7 @@ sys.path.append(
 from treeparse import cli, command, argument, option
 
 from .core.processor import process_rss
+from .core.parser import parse_rss_file
 
 
 def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=False):
@@ -31,6 +32,25 @@ def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=Fa
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         sys.exit(1)
+
+
+def list_callback(rss_file):
+    """Callback for list command to display stats about the RSS file."""
+    if not Path(rss_file).is_file():
+        logging.error(f"RSS file '{rss_file}' does not exist or is not a file.")
+        sys.exit(1)
+    subsite, items = parse_rss_file(rss_file)
+    if not subsite:
+        logging.error("Failed to detect subsite or parse items")
+        sys.exit(1)
+    if not items:
+        logging.info("No items found in RSS file")
+    else:
+        print(f"Subsite: {subsite}")
+        print(f"Number of items: {len(items)}")
+        print("Document IDs:")
+        for item in items:
+            print(f"- {item['doc_id']} (Title: {item['title']})")
 
 
 app = cli(
@@ -86,7 +106,22 @@ download_cmd = command(
     ],
 )
 
+list_cmd = command(
+    name="list",
+    help="Display stats about the RSS file.",
+    callback=list_callback,
+    arguments=[
+        argument(
+            name="rss_file",
+            arg_type=str,
+            help="Path to the RSS file",
+            sort_key=0,
+        ),
+    ],
+)
+
 app.commands.append(download_cmd)
+app.commands.append(list_cmd)
 
 
 def main():
