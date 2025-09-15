@@ -10,7 +10,6 @@ sys.path.append(
 )
 
 
-
 def test_download_callback_file_not_exist():
     """Test download_callback when RSS file does not exist."""
     with (
