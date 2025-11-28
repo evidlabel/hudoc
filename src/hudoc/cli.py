@@ -1,16 +1,12 @@
 import logging
+import os
 import sys
 from pathlib import Path
-
-# Add treeparse to sys.path
-sys.path.append(
-    str(Path(__file__).resolve().parent.parent.parent / ".." / "treeparse" / "src")
-)
-
 from treeparse import cli, command, argument, option
-
 from .core.processor import process_rss
 from .core.parser import parse_rss_file
+
+isfile = os.path.isfile
 
 
 def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=False):
@@ -36,7 +32,7 @@ def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=Fa
 
 def list_callback(rss_file):
     """Callback for list command to display stats about the RSS file."""
-    if not Path(rss_file).is_file():
+    if not isfile(rss_file):
         logging.error(f"RSS file '{rss_file}' does not exist or is not a file.")
         sys.exit(1)
     subsite, items = parse_rss_file(rss_file)

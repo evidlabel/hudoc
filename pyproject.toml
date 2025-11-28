@@ -13,8 +13,9 @@ dependencies = [
     "requests>=2.32.3,<3",
     "beautifulsoup4>=4.12.3,<5",
     "pyyaml>=6.0.2,<7",
-    "numpy>=2.3.0",             # Added for vectorization support
-    "pydantic>=2.0.0,<3",       # Added for data modeling
+    "numpy>=2.3.0",
+    "pydantic>=2.0.0,<3",
+    "treeparse>=0.1.0",
 ]
 
 [project.scripts]
@@ -23,14 +24,14 @@ hudoc = "hudoc.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=7.4.0,<8",
-    "pytest-cov>=4.0.0,<5",     # Added for coverage reporting
+    "pytest-cov>=4.0.0,<5",
     "pytest-mock>=3.10.0,<4",
     "requests-mock>=1.10.0,<2",
     "ruff>=0.6.8,<0.7",
-    "mkdocs>=1.5.3,<2",  # Preferred for documentation
+    "mkdocs>=1.5.3,<2",
     "mkdocs-material>=9.5.0,<10",
 ]
 
 [build-system]
-requires = ["setuptools"]               # Transitioned from poetry-core to a standard backend
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
