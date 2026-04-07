@@ -3,8 +3,9 @@ import os
 import sys
 from pathlib import Path
 from treeparse import cli, command, argument, option
-from .core.processor import process_rss
+from .core.processor import process_rss, process_rss_url
 from .core.parser import parse_rss_file
+from .core.constants import VALID_SUBSITES, SUBSITE_CONFIG
 
 isfile = os.path.isfile
 
@@ -47,6 +48,25 @@ def list_callback(rss_file):
             print(f"- {item['doc_id']} (Title: {item['title']})")
         print(f"Subsite: {subsite}")
         print(f"Number of items: {len(items)}")
+
+
+def latest_callback(subsite, output_dir, limit, threads, plain):
+    """Callback for latest command."""
+    url = SUBSITE_CONFIG[subsite]["rss_url"]
+    logging.info(f"Fetching latest from {subsite}")
+    try:
+        process_rss_url(
+            url=url,
+            output_dir=output_dir,
+            limit=limit,
+            threads=threads,
+            conversion_delay=2.0,
+            evid=not plain,
+        )
+        logging.info("Download completed")
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
+        sys.exit(1)
 
 
 app = cli(
@@ -116,8 +136,53 @@ list_cmd = command(
     ],
 )
 
+latest_cmd = command(
+    name="latest",
+    help="Fetch and download the latest documents from a HUDOC subsite.",
+    callback=latest_callback,
+    options=[
+        option(
+            flags=["--subsite", "-s"],
+            default="echr",
+            arg_type=str,
+            choices=VALID_SUBSITES,
+            help="HUDOC subsite to fetch from (default: echr)",
+            sort_key=0,
+        ),
+        option(
+            flags=["--output-dir", "-o"],
+            default="data",
+            arg_type=str,
+            help="Directory to save files (default: data)",
+            sort_key=1,
+        ),
+        option(
+            flags=["--limit", "-l"],
+            default=3,
+            arg_type=int,
+            help="Number of documents to download (0 for all, default: 3)",
+            sort_key=2,
+        ),
+        option(
+            flags=["--threads", "-n"],
+            default=10,
+            arg_type=int,
+            help="Number of download threads (default: 10)",
+            sort_key=3,
+        ),
+        option(
+            flags=["--plain", "-p"],
+            default=False,
+            arg_type=bool,
+            help="Save in plain text format (default: evid format)",
+            sort_key=4,
+        ),
+    ],
+)
+
 app.commands.append(download_cmd)
 app.commands.append(list_cmd)
+app.commands.append(latest_cmd)
 
 
 def main():

@@ -2,8 +2,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import xml.etree.ElementTree as ET
 
-from hudoc.core.parser import parse_rss_file
-from hudoc.core.processor import process_rss
+from hudoc.core.parser import parse_rss_file, parse_rss_url
+from hudoc.core.processor import process_rss, process_rss_url
 from hudoc.core.downloader import download_document
 
 
@@ -91,17 +91,17 @@ def test_parse_rss_file_no_link():
 def test_parse_rss_file_item_no_link():
     """Test parsing RSS item with no link."""
     mock_item = MagicMock()
-    mock_item.find.side_effect = (
-        lambda tag: None if tag == "link" else MagicMock(text="test")
+    mock_item.find.side_effect = lambda tag: (
+        None if tag == "link" else MagicMock(text="test")
     )
     mock_root = MagicMock()
     mock_root.findall.return_value = [
         MagicMock(
-            find=lambda tag: MagicMock(
-                text='https://hudoc.echr.coe.int/eng#{"itemid":["test"]}'
+            find=lambda tag: (
+                MagicMock(text='https://hudoc.echr.coe.int/eng#{"itemid":["test"]}')
+                if tag == "link"
+                else MagicMock(text="test")
             )
-            if tag == "link"
-            else MagicMock(text="test")
         ),
         mock_item,
     ]
@@ -252,6 +252,69 @@ def test_process_rss_echr(tmp_path, requests_mock):
     content = output_file.read_text(encoding="utf-8")
     assert "Title: CASE OF TEST v. TEST" in content
     assert "ECHR Test Paragraph" in content
+
+
+def test_parse_rss_url_success(requests_mock):
+    """Test parse_rss_url with a valid RSS response."""
+    url = "https://hudoc.echr.coe.int/app/rss/?library=ECHR"
+    xml = """<rss version="2.0"><channel>
+        <item>
+            <title>Test Case</title>
+            <link>http://hudoc.echr.coe.int/eng#{"itemid":["001-999"]}</link>
+            <description>Test Desc</description>
+            <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
+        </item>
+    </channel></rss>"""
+    requests_mock.get(url, text=xml)
+    subsite, items = parse_rss_url(url)
+    assert subsite == "echr"
+    assert len(items) == 1
+    assert items[0]["doc_id"] == "001-999"
+    assert items[0]["title"] == "Test Case"
+
+
+def test_parse_rss_url_request_error(requests_mock):
+    """Test parse_rss_url when HTTP request fails."""
+    import requests as req
+
+    url = "https://hudoc.echr.coe.int/app/rss/?library=ECHR"
+    requests_mock.get(url, exc=req.ConnectionError("connection refused"))
+    with patch("hudoc.core.parser.logging") as mock_logging:
+        subsite, items = parse_rss_url(url)
+    assert subsite is None
+    assert items == []
+    assert "Failed to fetch RSS" in mock_logging.error.call_args[0][0]
+
+
+def test_parse_rss_url_no_items(requests_mock):
+    """Test parse_rss_url when RSS has no items."""
+    url = "https://hudoc.echr.coe.int/app/rss/?library=ECHR"
+    requests_mock.get(url, text="<rss><channel></channel></rss>")
+    with patch("hudoc.core.parser.logging") as mock_logging:
+        subsite, items = parse_rss_url(url)
+    assert subsite is None
+    assert items == []
+    mock_logging.warning.assert_called_with("No items found in RSS feed")
+
+
+def test_process_rss_url_no_subsite():
+    """Test process_rss_url when no subsite detected."""
+    with (
+        patch("hudoc.core.processor.parse_rss_url", return_value=(None, [])),
+        patch("hudoc.core.processor.logging") as mock_logging,
+    ):
+        process_rss_url("https://example.com/rss", "output")
+        mock_logging.error.assert_called_with("Failed to detect subsite or parse items")
+
+
+def test_process_rss_url_no_items():
+    """Test process_rss_url when no items."""
+    with (
+        patch("hudoc.core.processor.parse_rss_url", return_value=("echr", [])),
+        patch("hudoc.core.processor.logging") as mock_logging,
+    ):
+        process_rss_url("https://example.com/rss", "output")
+        mock_logging.error.assert_called_with("No items to process")
 
 
 def test_download_document_no_text():

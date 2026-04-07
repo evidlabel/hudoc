@@ -14,7 +14,7 @@ uv pip install .
 
 ## Usage
 
-![Help](docs/assets/help.svg)
+<img src="docs/assets/help.svg" alt="hudoc --help" width="800">
 
 Example:
 

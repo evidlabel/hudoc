@@ -1,6 +1,6 @@
 from unittest.mock import patch
 import pytest
-from hudoc.cli import main, download_callback, list_callback
+from hudoc.cli import download_callback, list_callback, latest_callback
 
 
 def test_download_callback_file_not_exist():
@@ -84,10 +84,43 @@ def test_list_callback_with_items(capsys):
         assert "Number of items: 1" in captured.out
 
 
-def test_main(capsys):
+def test_latest_callback():
+    """Test latest_callback downloads from the correct subsite URL."""
+    with patch("hudoc.cli.process_rss_url") as mock_process:
+        latest_callback(
+            subsite="echr",
+            output_dir="data",
+            limit=3,
+            threads=10,
+            plain=False,
+        )
+        mock_process.assert_called_once()
+        call_kwargs = mock_process.call_args.kwargs
+        assert "echr" in call_kwargs["url"]
+        assert call_kwargs["output_dir"] == "data"
+        assert call_kwargs["evid"] is True
+
+
+def test_latest_callback_exception():
+    """Test latest_callback exits on error."""
+    with (
+        patch("hudoc.cli.process_rss_url", side_effect=Exception("Network error")),
+        patch("sys.exit") as mock_exit,
+        patch("hudoc.cli.logging") as mock_logging,
+    ):
+        latest_callback(
+            subsite="echr", output_dir="data", limit=3, threads=10, plain=False
+        )
+        mock_logging.error.assert_called_with("An error occurred: Network error")
+        mock_exit.assert_called_with(1)
+
+
+def test_main():
     """Test main function runs the CLI."""
-    with patch("sys.argv", ["hudoc", "--help"]), pytest.raises(SystemExit) as excinfo:
-        main()
-    assert excinfo.value.code == 0
-    captured = capsys.readouterr()
-    assert "hudoc" in captured.out
+    from treeparse import cli_runner
+    from hudoc.cli import app
+
+    runner = cli_runner(app)
+    result = runner.invoke(["--help"])
+    assert result.exit_code == 0
+    assert "hudoc" in result.output

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -19,16 +19,10 @@ jobs:
         python-version: '3.12'
 
     - name: Install UV
-      run: |
-        pip install uv
-
-    - name: Create virtual environment
-      run: uv venv .venv
+      run: pip install uv
 
     - name: Install dependencies
-      run: |
-        uv pip install .[dev]
+      run: uv sync --all-groups
 
     - name: Run tests
-      run: |
-        uv run pytest  # Fixed to run pytest via uv to ensure it's in the environment
+      run: uv run pytest
