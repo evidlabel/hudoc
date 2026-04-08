@@ -1,4 +1,7 @@
-![Deploy](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)![Version](https://img.shields.io/github/v/release/evidlabel/hudoc)
+[![CI](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml/badge.svg)](https://github.com/evidlabel/hudoc/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/evidlabel/hudoc)](https://github.com/evidlabel/hudoc/releases)
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 # hudoc
 
@@ -21,7 +24,3 @@ Example:
 ```sh
 hudoc rss_feed.xml -o output_dir -l 5 -n 10
 ```
-
-## Documentation
-
-Run `mkdocs serve` to view the documentation locally.
