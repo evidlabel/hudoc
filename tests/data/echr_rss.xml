@@ -1,0 +1,9 @@
+<rss version="2.0">
+    <channel>
+        <item>
+            <title>CASE OF TEST v. TEST</title>
+            <link>http://hudoc.echr.coe.int/eng#{"itemid":["001-123456"]}</link>
+            <description>12345/20 - Chamber Judgment</description>
+        </item>
+    </channel>
+</rss>

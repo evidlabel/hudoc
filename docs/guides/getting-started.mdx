@@ -1,0 +1,116 @@
+---
+title: Getting Started
+description: Install hudoc, download documents from an RSS feed, and fetch the latest decisions from any HUDOC subsite.
+---
+
+# Getting Started
+
+## Installation
+
+Install hudoc from PyPI:
+
+```bash
+pip install hudoc
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/evidlabel/hudoc.git
+cd hudoc
+uv sync
+uv run hudoc --version
+```
+
+## Downloading from an RSS Feed
+
+The primary workflow is to download documents from an RSS feed XML file:
+
+```bash
+hudoc download <RSS_FILE> -o <OUTPUT_DIR> -l <LIMIT> -n <THREADS>
+```
+
+### Options
+
+| Flag | Shorthand | Type | Default | Description |
+|------|-----------|------|---------|-------------|
+| `--output-dir` | `-o` | `str` | `data` | Directory to save text files |
+| `--limit` | `-l` | `int` | `3` | Number of documents to download (0 for all) |
+| `--threads` | `-n` | `int` | `10` | Number of threads for parallel downloading |
+| `--plain` | `-p` | `bool` | `False` | Save output in plain text format (default: evid format for labelling) |
+
+### Examples
+
+Download the first 10 documents from a feed:
+
+```bash
+hudoc download echr.rss -o ./cases --limit 10
+```
+
+Download all documents using 20 threads:
+
+```bash
+hudoc download greco.rss -o ./greco-cases -l 0 -n 20
+```
+
+Get plain text output instead of evid format:
+
+```bash
+hudoc download echr.rss -o ./plain-text --plain
+```
+
+## Inspecting an RSS Feed
+
+Before downloading, check what's in an RSS feed:
+
+```bash
+hudoc list echr.rss
+```
+
+This displays statistics about the feed — how many entries it contains, their dates, and other metadata — without downloading any documents.
+
+## Fetching Latest Documents
+
+The `latest` command fetches the most recent documents directly from a HUDOC subsite without needing an RSS file:
+
+```bash
+hudoc latest -s <SUBSITE> -o <OUTPUT_DIR> -l <LIMIT>
+```
+
+### Options
+
+| Flag | Shorthand | Type | Default | Description |
+|------|-----------|------|---------|-------------|
+| `--subsite` | `-s` | `str` | `echr` | HUDOC subsite (`commhr` `cpt` `ecri` `ecrml` `esc` `exec` `fcnm` `greco` `greta` `grevio` `echr`) |
+| `--output-dir` | `-o` | `str` | `data` | Directory to save files |
+| `--limit` | `-l` | `int` | `3` | Number of documents to download (0 for all) |
+| `--threads` | `-n` | `int` | `10` | Number of download threads |
+| `--plain` | `-p` | `bool` | `False` | Save in plain text format |
+
+### Examples
+
+Get the 5 latest ECtHR decisions:
+
+```bash
+hudoc latest -s echr -l 5
+```
+
+Download the latest GRECO reports:
+
+```bash
+hudoc latest -s greco -o ./greco-latest --limit 0
+```
+
+## Output formats
+
+By default, hudoc saves documents in **evid format** — structured text designed for labelling and analysis. Pass `--plain` (or `-p`) to get plain text output instead.
+
+## Global flags
+
+| Flag | Description |
+|------|-------------|
+| `--json` / `-j` | Output in JSON format |
+| `--help` / `-h` | Show help message |
+| `--hv` | Show help with version |
+| `--stub` | Stub mode (download structure only) |
+| `--version` / `-V` | Show version |

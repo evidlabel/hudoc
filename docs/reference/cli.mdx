@@ -1,0 +1,107 @@
+---
+title: CLI Reference
+description: Complete reference for all hudoc commands, subcommands, and flags.
+---
+
+# CLI Reference
+
+Complete command-line interface reference for hudoc.
+
+<div align="center">
+  <img src="../assets/help.svg" alt="Hudoc CLI Help Tree" width="600" />
+</div>
+
+## Full CLI tree
+
+<!-- CLI_TREE_START: Auto-generated — regenerate with `uv run hudoc --help` -->
+
+```
+Usage: hudoc ...  (--json, -j, --help, -h, --hv, --stub, --version, -V)
+Description: Download documents from HUDOC subsites using an RSS file.
+Example: hudoc download rss_feed.xml -o output_dir -l 5 -n 10
+hudoc────────────────────────────────────────────────────────────────────────────────────Download documents from HUDOC
+                                                                                         subsites using an RSS file.
+                                                                                         Example: hudoc download
+                                                                                         rss_feed.xml -o output_dir -l 5
+                                                                                         -n 10
+├── download <RSS_FILE, str>─────────────────────────────────────────────────────────────Download documents from HUDOC
+│                                                                                        subsites using RSS file. ▼
+│   ├── --output-dir, -o: str────────────────────────────────────────────────────────────Directory to save text files
+│   │                                                                                    (default: data) (default: data)
+│   ├── --limit, -l: int─────────────────────────────────────────────────────────────────Number of documents to download
+│   │                                                                                    (0 for all) (default: 3)
+│   │   (default: 3)
+│   ├── --threads, -n: int───────────────────────────────────────────────────────────────Number of threads for parallel
+│   │                                                                                    downloading (default: 10)
+│   │   (default: 10)
+│   └── --plain, -p: bool────────────────────────────────────────────────────────────────Save output in plain text
+│                                                                                        format (default: evid format
+│                                                                                        for labelling). (default:
+│       False)
+├── list <RSS_FILE, str>─────────────────────────────────────────────────────────────────Display stats about the RSS
+│                                                                                        file. ▼
+└── latest───────────────────────────────────────────────────────────────────────────────Fetch and download the latest
+                                                                                         documents from a HUDOC subsite.
+    ▼
+    ├── --subsite, -s: str (commhr|cpt|ecri|ecrml|esc|exec|fcnm|greco|greta|grevio|echr)─HUDOC subsite to fetch from
+    │                                                                                    (default: echr) (default: echr)
+    ├── --output-dir, -o: str────────────────────────────────────────────────────────────Directory to save files
+    │                                                                                    (default: data) (default: data)
+    ├── --limit, -l: int─────────────────────────────────────────────────────────────────Number of documents to download
+    │                                                                                    (0 for all, default: 3)
+    │   (default: 3)
+    ├── --threads, -n: int───────────────────────────────────────────────────────────────Number of download threads
+    │                                                                                    (default: 10) (default: 10)
+    └── --plain, -p: bool────────────────────────────────────────────────────────────────Save in plain text format
+                                                                                         (default: evid format)
+        (default: False)
+```
+
+<!-- CLI_TREE_END -->
+
+## Commands
+
+### `hudoc download <RSS_FILE>`
+
+Download documents from HUDOC subsites using an RSS file.
+
+**Arguments:**
+
+- `<RSS_FILE>` (str) — Path to the RSS feed XML file.
+
+**Options:**
+
+- `--output-dir`, `-o` (str, default: `data`) — Directory to save text files.
+- `--limit`, `-l` (int, default: `3`) — Number of documents to download. Use `0` for all.
+- `--threads`, `-n` (int, default: `10`) — Number of threads for parallel downloading.
+- `--plain`, `-p` (bool) — Save output in plain text format. Default is evid format for labelling.
+
+### `hudoc list <RSS_FILE>`
+
+Display stats about the RSS file without downloading documents.
+
+**Arguments:**
+
+- `<RSS_FILE>` (str) — Path to the RSS feed XML file.
+
+### `hudoc latest`
+
+Fetch and download the latest documents from a HUDOC subsite (no RSS file required).
+
+**Options:**
+
+- `--subsite`, `-s` (str, default: `echr`) — HUDOC subsite. One of: `commhr`, `cpt`, `ecri`, `ecrml`, `esc`, `exec`, `fcnm`, `greco`, `greta`, `grevio`, `echr`.
+- `--output-dir`, `-o` (str, default: `data`) — Directory to save files.
+- `--limit`, `-l` (int, default: `3`) — Number of documents to download. Use `0` for all.
+- `--threads`, `-n` (int, default: `10`) — Number of download threads.
+- `--plain`, `-p` (bool) — Save in plain text format. Default is evid format.
+
+## Global flags
+
+Available on all commands:
+
+- `--json`, `-j` — Output in JSON format.
+- `--help`, `-h` — Show help message.
+- `--hv` — Show help with version.
+- `--stub` — Stub mode (download structure only).
+- `--version`, `-V` — Show version.

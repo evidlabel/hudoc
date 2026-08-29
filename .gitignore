@@ -1,0 +1,22 @@
+# *.txt
+*whl
+*gz
+*pyc
+label.tex
+info.yml
+*.egg-info**
+*.txt
+build/
+label*
+examples/*/*
+examples/*.pdf
+output.json
+notes/
+.coverage
+__temp.json
+.grk_*
+.grkrc
+AGENTS.md
+clean.sh
+admin.sh
+design_brief.typ
