@@ -12,6 +12,7 @@ examples/*/*
 examples/*.pdf
 output.json
 notes/
+docs/
 .coverage
 __temp.json
 .grk_*
