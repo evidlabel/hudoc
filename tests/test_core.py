@@ -238,14 +238,50 @@ def test_process_rss_no_items():
 
 
 def test_process_rss_limit_zero():
-    """Test process_rss with limit=0 (all items)."""
+    """limit=0 takes every item; one thread fetches them in turn, pausing between."""
+    items = [{"doc_id": "1"}, {"doc_id": "2"}, {"doc_id": "3"}]
+    with (
+        patch("hudoc.core.processor.parse_rss_file", return_value=("echr", items)),
+        patch("hudoc.core.processor.download_document") as mock_download,
+        patch("hudoc.core.processor.time.sleep") as mock_sleep,
+    ):
+        process_rss("rss.xml", "output", limit=0)
+    assert mock_download.call_count == 3
+    assert [c.args for c in mock_sleep.call_args_list] == [(3.0,), (3.0,)]
+
+
+def test_process_rss_threads_use_executor():
     items = [{"doc_id": "1"}, {"doc_id": "2"}]
     with (
         patch("hudoc.core.processor.parse_rss_file", return_value=("echr", items)),
         patch("hudoc.core.processor.ThreadPoolExecutor") as mock_executor,
     ):
-        process_rss("rss.xml", "output", limit=0)
+        process_rss("rss.xml", "output", limit=0, threads=2)
         assert mock_executor().__enter__().submit.call_count == 2
+
+
+def test_process_rss_pdf_lists_urls_without_fetching(capsys):
+    items = [{"doc_id": "001-218240"}, {"doc_id": "001-57619"}]
+    with (
+        patch("hudoc.core.processor.parse_rss_file", return_value=("echr", items)),
+        patch("hudoc.core.processor.download_document") as mock_download,
+    ):
+        lines = process_rss("rss.xml", "output", limit=1, pdf=True, evid_set="coe")
+    mock_download.assert_not_called()
+    assert lines == [
+        'evid --db evid doc add -s coe "https://hudoc.echr.coe.int/app/conversion/pdf/'
+        '?library=ECHR&id=001-218240&filename=001-218240.pdf"'
+    ]
+    assert capsys.readouterr().out.strip() == lines[0]
+
+
+def test_pdf_url_quotes_the_id():
+    from hudoc.core.constants import pdf_url
+
+    assert pdf_url("grevio", "A/B 1") == (
+        "https://hudoc.grevio.coe.int/app/conversion/pdf/"
+        "?library=GREVIO&id=A%2FB%201&filename=A%2FB%201.pdf"
+    )
 
 
 def test_process_rss_echr(tmp_path, requests_mock):

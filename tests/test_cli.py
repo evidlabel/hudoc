@@ -139,3 +139,28 @@ def test_main():
     result = runner.invoke(["--help"])
     assert result.exit_code == 0
     assert "hudoc" in result.output
+
+
+def test_pdf_command_prints_urls():
+    from treeparse import cli_runner
+    from hudoc.cli import app
+
+    result = cli_runner(app).invoke(["pdf", "001-218240", "001-57619"])
+    assert result.exit_code == 0
+    assert result.output.split() == [
+        "https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id=001-218240&filename=001-218240.pdf",
+        "https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id=001-57619&filename=001-57619.pdf",
+    ]
+
+
+def test_plain_is_a_flag(tmp_path):
+    from treeparse import cli_runner
+    from hudoc.cli import app
+
+    with patch("hudoc.cli.process_rss") as mock_process:
+        rss = tmp_path / "f.xml"
+        rss.write_text("<rss/>")
+        result = cli_runner(app).invoke(["download", str(rss), "--plain", "--pdf"])
+    assert result.exit_code == 0
+    kwargs = mock_process.call_args.kwargs
+    assert kwargs["evid"] is False and kwargs["pdf"] is True and kwargs["delay"] == 3.0

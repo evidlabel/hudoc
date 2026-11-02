@@ -2,12 +2,23 @@ import logging
 import sys
 from pathlib import Path
 from treeparse import cli, command, argument, option
-from .core.processor import process_rss, process_rss_url
+from .core.processor import pdf_lines, process_rss, process_rss_url
 from .core.parser import parse_rss_file
 from .core.constants import VALID_SUBSITES, SUBSITE_CONFIG
 
+DELAY = 3.0  # seconds between requests, as HUDOC asks
 
-def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=False):
+
+def download_callback(
+    rss_file,
+    output_dir="data",
+    limit=3,
+    threads=1,
+    plain=False,
+    delay=DELAY,
+    pdf=False,
+    evid_set="",
+):
     """Callback for download command."""
     if not Path(rss_file).is_file():
         logging.error(f"RSS file '{rss_file}' does not exist or is not a file.")
@@ -21,8 +32,12 @@ def download_callback(rss_file, output_dir="data", limit=3, threads=10, plain=Fa
             threads=threads,
             conversion_delay=2.0,
             evid=not plain,
+            delay=delay,
+            pdf=pdf,
+            evid_set=evid_set,
         )
-        logging.info("Document download completed")
+        if not pdf:
+            logging.info("Document download completed")
     except Exception:
         logging.exception("An error occurred")
         sys.exit(1)
@@ -47,7 +62,9 @@ def list_callback(rss_file):
         logging.info(f"Number of items: {len(items)}")
 
 
-def latest_callback(subsite, output_dir, limit, threads, plain):
+def latest_callback(
+    subsite, output_dir, limit, threads, plain, delay=DELAY, pdf=False, evid_set=""
+):
     """Callback for latest command."""
     url = SUBSITE_CONFIG[subsite]["rss_url"]
     if limit:
@@ -61,11 +78,49 @@ def latest_callback(subsite, output_dir, limit, threads, plain):
             threads=threads,
             conversion_delay=2.0,
             evid=not plain,
+            delay=delay,
+            pdf=pdf,
+            evid_set=evid_set,
         )
-        logging.info("Download completed")
+        if not pdf:
+            logging.info("Download completed")
     except Exception:
         logging.exception("An error occurred")
         sys.exit(1)
+
+
+def pdf_callback(doc_ids, subsite="echr", evid_set=""):
+    """Print the official PDF URL of each document, the version to key in evid."""
+    items = [{"doc_id": d} for d in doc_ids]
+    for line in pdf_lines(subsite, items, evid_set):
+        print(line)
+
+
+def _source_options(sort_from):
+    """--delay, --pdf and --set, shared by download and latest."""
+    return [
+        option(
+            flags=["--delay", "-d"],
+            default=DELAY,
+            arg_type=float,
+            help="Seconds between requests (default: 3.0)",
+            sort_key=sort_from,
+        ),
+        option(
+            flags=["--pdf"],
+            flag=True,
+            help="Print each item's official PDF URL instead of downloading text. Key that PDF in evid; the text has no pages.",
+            sort_key=sort_from + 1,
+        ),
+        option(
+            flags=["--set"],
+            dest="evid_set",
+            default="",
+            arg_type=str,
+            help="With --pdf, print the `evid --db evid doc add -s <set>` line for each item",
+            sort_key=sort_from + 2,
+        ),
+    ]
 
 
 app = cli(
@@ -106,18 +161,18 @@ download_cmd = command(
         ),
         option(
             flags=["--threads", "-n"],
-            default=10,
-            help="Number of threads for parallel downloading (default: 10)",
+            default=1,
+            help="Number of threads for parallel downloading (default: 1)",
             arg_type=int,
             sort_key=2,
         ),
         option(
             flags=["--plain", "-p"],
-            default=False,
+            flag=True,
             help="Save output in plain text format (default: evid format for labelling).",
-            arg_type=bool,
             sort_key=3,
         ),
+        *_source_options(4),
     ],
 )
 
@@ -164,24 +219,58 @@ latest_cmd = command(
         ),
         option(
             flags=["--threads", "-n"],
-            default=10,
+            default=1,
             arg_type=int,
-            help="Number of download threads (default: 10)",
+            help="Number of download threads (default: 1)",
             sort_key=3,
         ),
         option(
             flags=["--plain", "-p"],
-            default=False,
-            arg_type=bool,
+            flag=True,
             help="Save in plain text format (default: evid format)",
             sort_key=4,
         ),
+        *_source_options(5),
     ],
 )
 
 app.commands.append(download_cmd)
 app.commands.append(list_cmd)
 app.commands.append(latest_cmd)
+
+pdf_cmd = command(
+    name="pdf",
+    help="Print the official PDF URL of HUDOC documents by item id. Key that PDF in evid for page pinpoints.",
+    callback=pdf_callback,
+    arguments=[
+        argument(
+            name="doc_ids",
+            arg_type=str,
+            nargs="+",
+            help="Item ids, e.g. 001-218240",
+            sort_key=0,
+        ),
+    ],
+    options=[
+        option(
+            flags=["--subsite", "-s"],
+            default="echr",
+            arg_type=str,
+            choices=VALID_SUBSITES,
+            help="HUDOC subsite (default: echr)",
+            sort_key=0,
+        ),
+        option(
+            flags=["--set"],
+            dest="evid_set",
+            default="",
+            arg_type=str,
+            help="Print the `evid --db evid doc add -s <set>` line instead of the bare URL",
+            sort_key=1,
+        ),
+    ],
+)
+app.commands.append(pdf_cmd)
 
 
 def main():

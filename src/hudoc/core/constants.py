@@ -90,3 +90,20 @@ SUBSITE_CONFIG = {
         "rss_url": _rss_url("greta"),
     },
 }
+
+
+def pdf_url(subsite, doc_id):
+    """The official PDF of one HUDOC document, the version to key in evid.
+
+    The text route (``base_url``) gives the same words but no pages, so quotes
+    are keyed in this PDF. Checked on ECHR judgments; other subsites use the
+    same conversion service.
+    """
+    from urllib.parse import quote
+
+    library = SUBSITE_CONFIG[subsite]["library"]
+    item = quote(doc_id, safe="")
+    return (
+        f"https://hudoc.{subsite}.coe.int/app/conversion/pdf/"
+        f"?library={library}&id={item}&filename={item}.pdf"
+    )

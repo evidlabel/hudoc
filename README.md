@@ -24,10 +24,16 @@ uv pip install .
 Fetch one latest ECtHR document (live HUDOC query):
 
 ```sh
-hudoc latest -s echr -l 1 -n 1 --plain true
+hudoc latest -s echr -l 1 --plain
 ```
 
 Same as `sh examples/latest.sh`.
+
+Print the official PDF of a judgment, the version to key in evid (pages, headers, footnotes):
+
+```sh
+hudoc pdf 001-218240 --set <evid-set>
+```
 
 ## License
 
