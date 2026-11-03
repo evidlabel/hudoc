@@ -2,9 +2,9 @@ import logging
 import sys
 from pathlib import Path
 from treeparse import cli, command, argument, option
-from .core.processor import pdf_lines, process_rss, process_rss_url
+from .core.processor import download_pdfs, pdf_lines, process_rss, process_rss_url
 from .core.parser import parse_rss_file
-from .core.constants import VALID_SUBSITES, SUBSITE_CONFIG
+from .core.constants import VALID_SUBSITES, SUBSITE_CONFIG, pdf_url
 
 DELAY = 3.0  # seconds between requests, as HUDOC asks
 
@@ -89,11 +89,20 @@ def latest_callback(
         sys.exit(1)
 
 
-def pdf_callback(doc_ids, subsite="echr", evid_set=""):
-    """Print the official PDF URL of each document, the version to key in evid."""
+def pdf_callback(
+    doc_ids, subsite="echr", output_dir="data", evid_set="", delay=DELAY, urls=False
+):
+    """Download the official PDF of each document, the version to key in evid."""
+    if urls:
+        for doc_id in doc_ids:
+            print(pdf_url(subsite, doc_id))
+        return
     items = [{"doc_id": d} for d in doc_ids]
-    for line in pdf_lines(subsite, items, evid_set):
+    paths = download_pdfs(subsite, items, output_dir, delay)
+    for line in pdf_lines(paths, evid_set):
         print(line)
+    if len(paths) < len(doc_ids):
+        sys.exit(1)
 
 
 def _source_options(sort_from):
@@ -109,7 +118,7 @@ def _source_options(sort_from):
         option(
             flags=["--pdf"],
             flag=True,
-            help="Print each item's official PDF URL instead of downloading text. Key that PDF in evid; the text has no pages.",
+            help="Download each item's official PDF instead of its text. Key that PDF in evid; the text has no pages.",
             sort_key=sort_from + 1,
         ),
         option(
@@ -117,7 +126,7 @@ def _source_options(sort_from):
             dest="evid_set",
             default="",
             arg_type=str,
-            help="With --pdf, print the `evid --db evid doc add -s <set>` line for each item",
+            help="With --pdf, print the `evid --db evid doc add -s <set>` line for each saved PDF",
             sort_key=sort_from + 2,
         ),
     ]
@@ -240,14 +249,14 @@ app.commands.append(latest_cmd)
 
 pdf_cmd = command(
     name="pdf",
-    help="Print the official PDF URL of HUDOC documents by item id. Key that PDF in evid for page pinpoints.",
+    help="Download the official PDF of HUDOC documents by item id. Key that PDF in evid for page pinpoints.",
     callback=pdf_callback,
     arguments=[
         argument(
             name="doc_ids",
             arg_type=str,
             nargs="+",
-            help="Item ids, e.g. 001-218240",
+            help="Item ids, e.g. 001-253219",
             sort_key=0,
         ),
     ],
@@ -261,12 +270,32 @@ pdf_cmd = command(
             sort_key=0,
         ),
         option(
+            flags=["--output-dir", "-o"],
+            default="data",
+            arg_type=str,
+            help="Directory to save the PDFs (default: data)",
+            sort_key=1,
+        ),
+        option(
             flags=["--set"],
             dest="evid_set",
             default="",
             arg_type=str,
-            help="Print the `evid --db evid doc add -s <set>` line instead of the bare URL",
-            sort_key=1,
+            help="Print the `evid --db evid doc add -s <set>` line for each saved PDF",
+            sort_key=2,
+        ),
+        option(
+            flags=["--delay", "-d"],
+            default=DELAY,
+            arg_type=float,
+            help="Seconds between requests (default: 3.0)",
+            sort_key=3,
+        ),
+        option(
+            flags=["--urls"],
+            flag=True,
+            help="Only print the PDF URLs, e.g. to open in a browser",
+            sort_key=4,
         ),
     ],
 )

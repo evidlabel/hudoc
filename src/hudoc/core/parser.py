@@ -3,7 +3,7 @@ import logging
 import urllib.parse
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
-import requests
+from ..fetcher import http_get
 from .constants import SUBSITE_CONFIG, VALID_SUBSITES
 
 
@@ -112,14 +112,13 @@ def parse_rss_file(rss_file):
 
 def parse_rss_url(url):
     """Fetch RSS from a URL and detect subsite from item links."""
+    resp = http_get(url, timeout=30)
+    if not resp.ok:
+        logging.error(f"Failed to fetch RSS from {url}: {resp.reason()}")
+        return None, []
     try:
-        resp = requests.get(url, timeout=30)
-        resp.raise_for_status()
         root = ET.fromstring(resp.content)
         return _parse_items(root, "feed")
-    except requests.RequestException as e:
-        logging.error(f"Failed to fetch RSS from {url}: {e!s}")
-        return None, []
     except ET.ParseError as e:
         logging.error(f"Failed to parse RSS from {url}: {e!s}")
         return None, []

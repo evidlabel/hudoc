@@ -5,6 +5,11 @@ from pathlib import Path
 from .evid import save_evid
 
 
+def safe_name(doc_id):
+    """The item id as a file name part."""
+    return doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
+
+
 def save_text(
     text,
     doc_id,
@@ -17,8 +22,7 @@ def save_text(
 ):
     """Save document text in plain text or evid format."""
     prefix = f"{hudoc_type}_doc"
-    safe_id = doc_id.replace("/", "_").replace(":", "_").replace(" ", "_")
-    filename = f"{prefix}_{safe_id}.txt"
+    filename = f"{prefix}_{safe_name(doc_id)}.txt"
 
     if evid:
         save_evid(

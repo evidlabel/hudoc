@@ -1,9 +1,10 @@
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
-from ..fetcher import get_document_text
-from ..writer import save_text
+from ..fetcher import get_document_pdf, get_document_text
+from ..writer import safe_name, save_text
 from .constants import SUBSITE_CONFIG, pdf_url
 from .parser import parse_rss_file, parse_rss_url
 
@@ -30,16 +31,34 @@ def download_document(item, hudoc_type, output_dir, conversion_delay, evid=False
         logging.warning(f"No content retrieved for {doc_id}")
 
 
-def pdf_lines(subsite, items, evid_set=""):
-    """One line per item: its PDF URL, or the evid command that keys it."""
-    lines = []
+def download_pdfs(subsite, items, output_dir, delay=3.0):
+    """Save each item's official PDF in ``output_dir``; return the saved paths.
+
+    A PDF already there is kept. Requests are ``delay`` seconds apart.
+    """
+    saved = []
+    fetched = False
     for item in items:
-        url = pdf_url(subsite, item["doc_id"])
-        if evid_set:
-            lines.append(f'evid --db evid doc add -s {evid_set} "{url}"')
-        else:
-            lines.append(url)
-    return lines
+        doc_id = item["doc_id"]
+        path = Path(output_dir) / f"{subsite}_{safe_name(doc_id)}.pdf"
+        if path.is_file() and path.read_bytes()[:4] == b"%PDF":
+            logging.info(f"{path} is already there")
+            saved.append(path)
+            continue
+        if fetched and delay > 0:
+            time.sleep(delay)  # HUDOC asks for a pause between requests
+        fetched = True
+        if get_document_pdf(pdf_url(subsite, doc_id), path):
+            logging.info(f"Saved {path}")
+            saved.append(path)
+    return saved
+
+
+def pdf_lines(paths, evid_set=""):
+    """One line per saved PDF: its path, or the evid command that keys it."""
+    if evid_set:
+        return [f'evid --db evid doc add -s {evid_set} "{p}"' for p in paths]
+    return [str(p) for p in paths]
 
 
 def _limited(items, limit):
@@ -89,7 +108,8 @@ def _process(
         logging.error("No items to process")
         return []
     if pdf:
-        lines = pdf_lines(subsite, _limited(items, limit), evid_set)
+        paths = download_pdfs(subsite, _limited(items, limit), output_dir, delay)
+        lines = pdf_lines(paths, evid_set)
         for line in lines:
             print(line)
         return lines
@@ -110,7 +130,7 @@ def process_rss(
     pdf=False,
     evid_set="",
 ):
-    """Process an RSS file: download each item's text, or with ``pdf`` print its PDF URL."""
+    """Process an RSS file: download each item's text, or with ``pdf`` its official PDF."""
     subsite, items = parse_rss_file(rss_file)
     return _process(
         subsite,
@@ -137,7 +157,7 @@ def process_rss_url(
     pdf=False,
     evid_set="",
 ):
-    """Fetch an RSS feed: download each item's text, or with ``pdf`` print its PDF URL."""
+    """Fetch an RSS feed: download each item's text, or with ``pdf`` its official PDF."""
     subsite, items = parse_rss_url(url)
     return _process(
         subsite,

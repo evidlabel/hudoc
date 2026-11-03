@@ -1,11 +1,11 @@
 ---
 name: hudoc
-description: Use when the user wants documents from HUDOC subsites (ECHR, GREVIO, CPT, ECRI, ECRML, ESC, EXEC, FCNM, GRECO, GRETA, COMMHR) — text from a saved RSS feed or the latest feed for searching, or the official PDF URL of a judgment to key in evid. Also use when inspecting an RSS feed's contents.
+description: Use when the user wants documents from HUDOC subsites (ECHR, GREVIO, CPT, ECRI, ECRML, ESC, EXEC, FCNM, GRECO, GRETA, COMMHR) — text from a saved RSS feed or the latest feed for searching, or the official PDF of a judgment to key in evid. Also use when inspecting an RSS feed's contents.
 ---
 
 # hudoc
 
-HUDOC subsite documents from a saved RSS feed or `latest`: text for searching, PDF URLs for keying.
+HUDOC subsite documents from a saved RSS feed or `latest`: text for searching, PDFs for keying.
 
 ## Rules
 - Verbatim — never retype judgment text.
@@ -14,8 +14,10 @@ HUDOC subsite documents from a saved RSS feed or `latest`: text for searching, P
 - One request at a time, 3 s apart (`--delay`, `--threads` default 1).
 - The text output is for searching. It has the judgment's words but no pages.
   A quote is keyed in the official PDF.
-- HUDOC can answer a script with a JavaScript challenge page (Cloudflare, 403).
-  Then hudoc gets nothing. Open the documents in a browser instead.
+- Fetches go through the `curl` binary; it must be on PATH.
+  HUDOC's Cloudflare answers python-requests with a 403 challenge, but serves curl.
+- If curl gets a challenge page too, hudoc saves nothing.
+  Then open the documents in a browser and add the saved PDFs.
   Don't try to get around the challenge.
 - Missing from PATH → install first (below).
 
@@ -29,13 +31,17 @@ Search on the portal → **RSS** → save → `hudoc download <file>`. Or `hudoc
 Key the official PDF, so quotes get page pinpoints:
 
 ```bash
-hudoc pdf <itemid> --set <slug>                   # prints: evid --db evid doc add -s <slug> "<pdf url>"
-hudoc download <feed.xml> --pdf --set <slug>      # the same, for every item in a feed
+hudoc pdf <itemid> -o pdf --set <slug>            # saves pdf/echr_<itemid>.pdf, prints its evid line
+evid --db evid doc add -s <slug> pdf/echr_<itemid>.pdf
+hudoc download <feed.xml> --pdf -o pdf --set <slug>  # the same, for every item in a feed
 evid --db evid doc list -s <slug>                 # confirm the doc is in the set
 ```
 
-`hudoc pdf` prints URLs and fetches nothing.
-Check that a fetched file starts with `%PDF`.
+- A saved file always starts with `%PDF`; anything else is refused.
+- HUDOC answers 204, and hudoc exits 1, for an item id it does not have.
+  Press releases (`003-…`) give 204 on the text route.
+- A PDF added from a file has an empty `url`.
+  Set it in the document's `info.yml` from `hudoc pdf <itemid> --urls`.
 
 Every evid command runs as `evid --db evid`, from the case root. Bare `evid` writes to `~/.local/share/evid`.
 

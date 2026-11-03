@@ -13,11 +13,11 @@ from hudoc.utils import (
 )
 
 
-def test_get_document_text_direct_success(requests_mock):
+def test_get_document_text_direct_success(fake_http):
     """Test direct download success without triggering conversion."""
     doc_id = "test"
     rss_link = 'https://hudoc.echr.coe.int/eng#{"itemid":"test"}'
-    requests_mock.get(
+    fake_http.add(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
         text="""
         <html>
@@ -39,19 +39,19 @@ def test_get_document_text_direct_success(requests_mock):
     )
     expected = "Test paragraph 1\n\nTest heading\n\nTest paragraph 2"
     assert text == expected
-    assert not any(req.url == rss_link for req in requests_mock.request_history)
+    assert rss_link not in fake_http.history
 
 
-def test_get_document_text_empty_triggers_conversion(requests_mock):
+def test_get_document_text_empty_triggers_conversion(fake_http):
     """Test empty direct download triggers conversion."""
     doc_id = "test"
     rss_link = 'https://hudoc.echr.coe.int/eng#{"itemid":"test"}'
-    requests_mock.get(
+    fake_http.add(
         rss_link,
         status_code=200,
         text="Conversion triggered",
     )
-    requests_mock.get(
+    fake_http.add(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
         [
             {"text": "<html><body></body></html>", "status_code": 200},
@@ -81,16 +81,16 @@ def test_get_document_text_empty_triggers_conversion(requests_mock):
     assert text == expected
 
 
-def test_get_document_text_failure_triggers_conversion(requests_mock):
+def test_get_document_text_failure_triggers_conversion(fake_http):
     """Test failed direct download triggers conversion."""
     doc_id = "test"
     rss_link = 'https://hudoc.echr.coe.int/eng#{"itemid":"test"}'
-    requests_mock.get(
+    fake_http.add(
         rss_link,
         status_code=200,
         text="Conversion triggered",
     )
-    requests_mock.get(
+    fake_http.add(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
         [
             {"status_code": 500},
@@ -120,10 +120,10 @@ def test_get_document_text_failure_triggers_conversion(requests_mock):
     assert text == expected
 
 
-def test_get_document_text_empty_no_rss_link(requests_mock):
+def test_get_document_text_empty_no_rss_link(fake_http):
     """Test empty document content without RSS link."""
     doc_id = "test"
-    requests_mock.get(
+    fake_http.add(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
         text="<html><body></body></html>",
     )
@@ -137,15 +137,15 @@ def test_get_document_text_empty_no_rss_link(requests_mock):
     assert text is None
 
 
-def test_get_document_text_all_attempts_fail(requests_mock):
+def test_get_document_text_all_attempts_fail(fake_http):
     """Test all attempts fail in get_document_text."""
     doc_id = "test"
     rss_link = 'https://hudoc.echr.coe.int/eng#{"itemid":"test"}'
-    requests_mock.get(
+    fake_http.add(
         rss_link,
         status_code=200,
     )
-    requests_mock.get(
+    fake_http.add(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
         status_code=500,
     )
@@ -163,15 +163,15 @@ def test_get_document_text_all_attempts_fail(requests_mock):
         )
 
 
-def test_get_document_text_empty_attempt(requests_mock):
+def test_get_document_text_empty_attempt(fake_http):
     """Test empty content on attempt."""
     doc_id = "test"
     rss_link = 'https://hudoc.echr.coe.int/eng#{"itemid":"test"}'
-    requests_mock.get(
+    fake_http.add(
         rss_link,
         status_code=200,
     )
-    requests_mock.get(
+    fake_http.add(
         "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id=test",
         text="<html><body></body></html>",
     )
@@ -201,14 +201,14 @@ def test_trigger_document_conversion_no_link():
         )
 
 
-def test_trigger_document_conversion_failure(requests_mock):
+def test_trigger_document_conversion_failure(fake_http):
     """Test trigger_document_conversion failure."""
     rss_link = "https://example.com/"
-    requests_mock.get(rss_link, status_code=500)
+    fake_http.add(rss_link, status_code=500)
     with patch("hudoc.fetcher.logging") as mock_logging:
         assert not trigger_document_conversion(rss_link, "test")
         mock_logging.error.assert_called_with(
-            "Failed to trigger conversion for test: 500 Server Error: None for url: https://example.com/"
+            "Failed to trigger conversion for test: HTTP 500"
         )
 
 

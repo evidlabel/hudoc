@@ -29,11 +29,15 @@ hudoc latest -s echr -l 1 --plain
 
 Same as `sh examples/latest.sh`.
 
-Print the official PDF of a judgment, the version to key in evid (pages, headers, footnotes):
+Download the official PDF of a judgment, the version to key in evid (pages, headers, footnotes),
+and print the `evid` line that adds it:
 
 ```sh
-hudoc pdf 001-218240 --set <evid-set>
+hudoc pdf 001-253220 -o pdf --set <evid-set>
 ```
+
+hudoc fetches through the `curl` binary, which must be on PATH.
+HUDOC's Cloudflare front turns away python-requests but serves curl.
 
 ## License
 

@@ -260,19 +260,94 @@ def test_process_rss_threads_use_executor():
         assert mock_executor().__enter__().submit.call_count == 2
 
 
-def test_process_rss_pdf_lists_urls_without_fetching(capsys):
-    items = [{"doc_id": "001-218240"}, {"doc_id": "001-57619"}]
+PDF_URL = (
+    "https://hudoc.echr.coe.int/app/conversion/pdf/"
+    "?library=ECHR&id={0}&filename={0}.pdf"
+)
+
+
+def test_process_rss_pdf_downloads_and_prints_evid_lines(tmp_path, fake_http, capsys):
+    items = [{"doc_id": "001-253219"}, {"doc_id": "001-57619"}]
+    fake_http.add(PDF_URL.format("001-253219"), content=b"%PDF-1.7 judgment")
     with (
         patch("hudoc.core.processor.parse_rss_file", return_value=("echr", items)),
         patch("hudoc.core.processor.download_document") as mock_download,
     ):
-        lines = process_rss("rss.xml", "output", limit=1, pdf=True, evid_set="coe")
+        lines = process_rss("rss.xml", tmp_path, limit=1, pdf=True, evid_set="coe")
     mock_download.assert_not_called()
-    assert lines == [
-        'evid --db evid doc add -s coe "https://hudoc.echr.coe.int/app/conversion/pdf/'
-        '?library=ECHR&id=001-218240&filename=001-218240.pdf"'
-    ]
+    saved = tmp_path / "echr_001-253219.pdf"
+    assert saved.read_bytes() == b"%PDF-1.7 judgment"
+    assert lines == [f'evid --db evid doc add -s coe "{saved}"']
     assert capsys.readouterr().out.strip() == lines[0]
+    assert fake_http.history == [PDF_URL.format("001-253219")]
+
+
+def test_download_pdfs_pauses_between_fetches_and_keeps_existing(tmp_path, fake_http):
+    from hudoc.core.processor import download_pdfs
+
+    (tmp_path / "echr_001-1.pdf").write_bytes(b"%PDF old")
+    for doc_id in ("001-2", "001-3"):
+        fake_http.add(PDF_URL.format(doc_id), content=b"%PDF new")
+    items = [{"doc_id": d} for d in ("001-1", "001-2", "001-3")]
+    with patch("hudoc.core.processor.time.sleep") as mock_sleep:
+        paths = download_pdfs("echr", items, tmp_path, delay=3.0)
+    assert [p.name for p in paths] == ["echr_001-1.pdf", "echr_001-2.pdf", "echr_001-3.pdf"]
+    assert (tmp_path / "echr_001-1.pdf").read_bytes() == b"%PDF old"
+    assert fake_http.history == [PDF_URL.format("001-2"), PDF_URL.format("001-3")]
+    assert [c.args for c in mock_sleep.call_args_list] == [(3.0,)]
+
+
+def test_get_document_pdf_refuses_204_and_non_pdf(tmp_path, fake_http, caplog):
+    from hudoc.fetcher import get_document_pdf
+
+    fake_http.add("https://x/none", status_code=204)
+    fake_http.add("https://x/page", text="<html>Just a moment...</html>")
+    fake_http.add("https://x/denied", status_code=403, text="<html>challenge</html>")
+    assert get_document_pdf("https://x/none", tmp_path / "a.pdf") is None
+    assert get_document_pdf("https://x/page", tmp_path / "b.pdf") is None
+    assert get_document_pdf("https://x/denied", tmp_path / "c.pdf") is None
+    assert list(tmp_path.iterdir()) == []
+    assert "check the item id" in caplog.text
+    assert "Not a PDF" in caplog.text
+    assert "HTTP 403" in caplog.text
+
+
+def test_http_get_uses_curl(tmp_path):
+    """A real round trip through the curl binary to a local server."""
+    import functools
+    import shutil
+    import threading
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+    import pytest
+
+    from hudoc.fetcher import http_get
+
+    if not shutil.which("curl"):
+        pytest.skip("curl not installed")
+    (tmp_path / "j.pdf").write_bytes(b"%PDF-1.4 body")
+    handler = functools.partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
+    handler.log_message = lambda *a: None
+    server = HTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        ok = http_get(f"{base}/j.pdf")
+        missing = http_get(f"{base}/nope.pdf")
+    finally:
+        server.shutdown()
+    assert (ok.status, ok.content) == (200, b"%PDF-1.4 body")
+    assert missing.status == 404 and not missing.ok
+    down = http_get(f"{base}/j.pdf", timeout=2)
+    assert down.status == 0 and down.error
+
+
+def test_http_get_without_curl(monkeypatch):
+    from hudoc.fetcher import http_get
+
+    monkeypatch.setattr("hudoc.fetcher.shutil.which", lambda name: None)
+    response = http_get("https://example.com")
+    assert response.status == 0 and response.error == "curl not found on PATH"
 
 
 def test_pdf_url_quotes_the_id():
@@ -284,7 +359,7 @@ def test_pdf_url_quotes_the_id():
     )
 
 
-def test_process_rss_echr(tmp_path, requests_mock):
+def test_process_rss_echr(tmp_path, fake_http):
     """Test processing an ECHR RSS file with pre-downloaded content."""
     rss_file = Path("tests/data/echr_rss.xml")
     doc_id = "001-123456"
@@ -292,7 +367,7 @@ def test_process_rss_echr(tmp_path, requests_mock):
 
     with open("tests/data/echr_doc.html") as f:
         html_content = f.read()
-    requests_mock.get(
+    fake_http.add(
         f"https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id={doc_id}",
         text=html_content,
     )
@@ -312,7 +387,7 @@ def test_process_rss_echr(tmp_path, requests_mock):
     assert "ECHR Test Paragraph" in content
 
 
-def test_parse_rss_url_success(requests_mock):
+def test_parse_rss_url_success(fake_http):
     """Test parse_rss_url with a valid RSS response."""
     url = "https://hudoc.echr.coe.int/app/rss/?library=ECHR"
     xml = """<rss version="2.0"><channel>
@@ -323,7 +398,7 @@ def test_parse_rss_url_success(requests_mock):
             <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
         </item>
     </channel></rss>"""
-    requests_mock.get(url, text=xml)
+    fake_http.add(url, text=xml)
     subsite, items = parse_rss_url(url)
     assert subsite == "echr"
     assert len(items) == 1
@@ -331,12 +406,10 @@ def test_parse_rss_url_success(requests_mock):
     assert items[0]["title"] == "Test Case"
 
 
-def test_parse_rss_url_request_error(requests_mock):
+def test_parse_rss_url_request_error(fake_http):
     """Test parse_rss_url when HTTP request fails."""
-    import requests as req
-
     url = "https://hudoc.echr.coe.int/app/rss/?library=ECHR"
-    requests_mock.get(url, exc=req.ConnectionError("connection refused"))
+    fake_http.add(url, exc="connection refused")
     with patch("hudoc.core.parser.logging") as mock_logging:
         subsite, items = parse_rss_url(url)
     assert subsite is None
@@ -344,10 +417,10 @@ def test_parse_rss_url_request_error(requests_mock):
     assert "Failed to fetch RSS" in mock_logging.error.call_args[0][0]
 
 
-def test_parse_rss_url_no_items(requests_mock):
+def test_parse_rss_url_no_items(fake_http):
     """Test parse_rss_url when RSS has no items."""
     url = "https://hudoc.echr.coe.int/app/rss/?library=ECHR"
-    requests_mock.get(url, text="<rss><channel></channel></rss>")
+    fake_http.add(url, text="<rss><channel></channel></rss>")
     with patch("hudoc.core.parser.logging") as mock_logging:
         subsite, items = parse_rss_url(url)
     assert subsite is None

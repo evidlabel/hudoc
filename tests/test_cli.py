@@ -141,16 +141,34 @@ def test_main():
     assert "hudoc" in result.output
 
 
-def test_pdf_command_prints_urls():
+def test_pdf_command_urls_only():
     from treeparse import cli_runner
     from hudoc.cli import app
 
-    result = cli_runner(app).invoke(["pdf", "001-218240", "001-57619"])
+    with patch("hudoc.cli.download_pdfs") as mock_download:
+        result = cli_runner(app).invoke(["pdf", "001-218240", "001-57619", "--urls"])
+    mock_download.assert_not_called()
     assert result.exit_code == 0
     assert result.output.split() == [
         "https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id=001-218240&filename=001-218240.pdf",
         "https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id=001-57619&filename=001-57619.pdf",
     ]
+
+
+def test_pdf_command_downloads_and_fails_on_a_missing_one(tmp_path):
+    from treeparse import cli_runner
+    from hudoc.cli import app
+
+    saved = tmp_path / "echr_001-1.pdf"
+    with patch("hudoc.cli.download_pdfs", return_value=[saved]) as mock_download:
+        result = cli_runner(app).invoke(
+            ["pdf", "001-1", "001-2", "-o", str(tmp_path), "--set", "coe"]
+        )
+    args = mock_download.call_args.args
+    assert args[0] == "echr" and args[2] == str(tmp_path) and args[3] == 3.0
+    assert [i["doc_id"] for i in args[1]] == ["001-1", "001-2"]
+    assert f'evid --db evid doc add -s coe "{saved}"' in result.output
+    assert result.exit_code == 1
 
 
 def test_plain_is_a_flag(tmp_path):
