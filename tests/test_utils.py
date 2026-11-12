@@ -219,6 +219,28 @@ def test_clean_text_for_typst():
     assert cleaned == 'Test \\# \\* \\_ \\~ \\^ \\` \\" \\$ \\< \\> \n\n'
 
 
+def test_clean_text_for_typst_keeps_urls_and_line_initial_markers():
+    """`//` and `/*` open Typst comments; a bare URL must not truncate the label."""
+    text = (
+        "See https://example.org/x for details.\n"
+        "A single slash /not/a/comment stays readable.\n"
+        "/* block comment */ and a stray */ marker.\n"
+        "- dash item\n"
+        "  + plus item\n"
+        "= would be a heading"
+    )
+    cleaned = clean_text_for_typst(text)
+    assert "https:\\/\\/example.org/x" in cleaned
+    assert "A single slash /not/a/comment stays readable." in cleaned
+    assert "/\\* block comment \\*/" in cleaned
+    assert "\n\\- dash item" in cleaned
+    assert "\n  \\+ plus item" in cleaned
+    assert "\n\\= would be a heading" in cleaned
+    # No unescaped comment opener survived anywhere.
+    assert "//" not in cleaned.replace("\\/\\/", "")
+    assert "/*" not in cleaned
+
+
 def test_typst_dict():
     """Test typst_dict conversion."""
     d = {"key": 'value "escaped"', "list": ["item1", "item2"], "num": 42}

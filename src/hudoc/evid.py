@@ -14,7 +14,13 @@ from .models import EvidMetadata
 
 
 def clean_text_for_typst(text: str) -> str:
-    """Clean text for Typst by escaping special characters and normalizing newlines."""
+    """Clean text for Typst by escaping special characters and normalizing newlines.
+
+    A single ``/`` is ordinary text in Typst; only the *pairs* ``//`` (line
+    comment) and ``/*`` (block comment) are syntax. They are therefore escaped as
+    sequences — escaping every ``/`` would shred every URL. Line-initial ``-``,
+    ``+`` and ``=`` are list/enum/heading markers and are escaped as well.
+    """
     text = re.sub(r"(\n\s*\n)+", r"\n\n", text)
     escapes = {
         "\\": "\\\\",
@@ -29,7 +35,14 @@ def clean_text_for_typst(text: str) -> str:
         "<": "\\<",
         ">": "\\>",
     }
-    return "".join(escapes.get(c, c) for c in text)
+    # Single characters first: this already turns `/*` into `/\*`, which no
+    # longer opens a block comment.
+    text = "".join(escapes.get(c, c) for c in text)
+    # Only `//` is still live after the pass above.
+    text = text.replace("//", "\\/\\/")
+    # `-`, `+`, `=` at the start of a line would re-style or promote the paragraph.
+    text = re.sub(r"(?m)^([ \t]*)([-+=])", r"\1\\\2", text)
+    return text
 
 
 def typst_dict(d: dict) -> str:
