@@ -265,10 +265,14 @@ PDF_URL = (
     "?library=ECHR&id={0}&filename={0}.pdf"
 )
 
+# A whole PDF in miniature: header, one object, trailer. get_document_pdf now
+# refuses a body that starts with %PDF but never reaches %%EOF.
+MINIMAL_PDF = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+
 
 def test_process_rss_pdf_downloads_and_prints_evid_lines(tmp_path, fake_http, capsys):
     items = [{"doc_id": "001-253219"}, {"doc_id": "001-57619"}]
-    fake_http.add(PDF_URL.format("001-253219"), content=b"%PDF-1.7 judgment")
+    fake_http.add(PDF_URL.format("001-253219"), content=MINIMAL_PDF)
     with (
         patch("hudoc.core.processor.parse_rss_file", return_value=("echr", items)),
         patch("hudoc.core.processor.download_document") as mock_download,
@@ -276,7 +280,7 @@ def test_process_rss_pdf_downloads_and_prints_evid_lines(tmp_path, fake_http, ca
         lines = process_rss("rss.xml", tmp_path, limit=1, pdf=True, evid_set="coe")
     mock_download.assert_not_called()
     saved = tmp_path / "echr_001-253219.pdf"
-    assert saved.read_bytes() == b"%PDF-1.7 judgment"
+    assert saved.read_bytes() == MINIMAL_PDF
     assert lines == [f'evid --db evid doc add -s coe "{saved}"']
     assert capsys.readouterr().out.strip() == lines[0]
     assert fake_http.history == [PDF_URL.format("001-253219")]
@@ -285,16 +289,65 @@ def test_process_rss_pdf_downloads_and_prints_evid_lines(tmp_path, fake_http, ca
 def test_download_pdfs_pauses_between_fetches_and_keeps_existing(tmp_path, fake_http):
     from hudoc.core.processor import download_pdfs
 
-    (tmp_path / "echr_001-1.pdf").write_bytes(b"%PDF old")
+    (tmp_path / "echr_001-1.pdf").write_bytes(MINIMAL_PDF)
     for doc_id in ("001-2", "001-3"):
-        fake_http.add(PDF_URL.format(doc_id), content=b"%PDF new")
+        fake_http.add(PDF_URL.format(doc_id), content=MINIMAL_PDF)
     items = [{"doc_id": d} for d in ("001-1", "001-2", "001-3")]
     with patch("hudoc.core.processor.time.sleep") as mock_sleep:
         paths = download_pdfs("echr", items, tmp_path, delay=3.0)
     assert [p.name for p in paths] == ["echr_001-1.pdf", "echr_001-2.pdf", "echr_001-3.pdf"]
-    assert (tmp_path / "echr_001-1.pdf").read_bytes() == b"%PDF old"
+    assert (tmp_path / "echr_001-1.pdf").read_bytes() == MINIMAL_PDF
     assert fake_http.history == [PDF_URL.format("001-2"), PDF_URL.format("001-3")]
     assert [c.args for c in mock_sleep.call_args_list] == [(3.0,)]
+
+
+def test_get_document_pdf_rejects_truncated_body(tmp_path, fake_http, caplog):
+    """`%PDF` alone is not a download: a stub without a trailer is refused."""
+    from hudoc.fetcher import get_document_pdf
+
+    fake_http.add("https://x/stub", content=b"%PDF-1.7")
+    fake_http.add("https://x/cut", content=b"%PDF-1.7\n1 0 obj\n<<>>\n")
+    assert get_document_pdf("https://x/stub", tmp_path / "a.pdf") is None
+    assert get_document_pdf("https://x/cut", tmp_path / "b.pdf") is None
+    assert list(tmp_path.iterdir()) == []
+    assert "Truncated PDF" in caplog.text
+
+
+def test_get_document_pdf_writes_atomically_and_leaves_no_part_file(
+    tmp_path, fake_http
+):
+    """The body lands via temp + os.replace, so no .part and no short target."""
+    from hudoc.fetcher import get_document_pdf
+
+    fake_http.add("https://x/ok", content=MINIMAL_PDF)
+    path = tmp_path / "ok.pdf"
+    assert get_document_pdf("https://x/ok", path) == path
+    assert path.read_bytes() == MINIMAL_PDF
+    assert [p.name for p in tmp_path.iterdir()] == ["ok.pdf"]
+
+
+def test_get_document_pdf_failed_replace_cleans_up(tmp_path, fake_http, caplog):
+    """A failing rename leaves neither a target nor a temp file behind."""
+    from hudoc.fetcher import get_document_pdf
+
+    fake_http.add("https://x/ok", content=MINIMAL_PDF)
+    with patch("hudoc.fetcher.os.replace", side_effect=OSError("disk full")):
+        assert get_document_pdf("https://x/ok", tmp_path / "ok.pdf") is None
+    assert list(tmp_path.iterdir()) == []
+    assert "disk full" in caplog.text
+
+
+def test_download_pdfs_refetches_incomplete_file(tmp_path, fake_http):
+    """An 8-byte `%PDF-1.7` stub on disk must not count as already downloaded."""
+    from hudoc.core.processor import download_pdfs
+
+    (tmp_path / "echr_001-1.pdf").write_bytes(b"%PDF-1.7")
+    fake_http.add(PDF_URL.format("001-1"), content=MINIMAL_PDF)
+    with patch("hudoc.core.processor.time.sleep"):
+        paths = download_pdfs("echr", [{"doc_id": "001-1"}], tmp_path, delay=3.0)
+    assert paths == [tmp_path / "echr_001-1.pdf"]
+    assert paths[0].read_bytes() == MINIMAL_PDF
+    assert fake_http.history == [PDF_URL.format("001-1")]
 
 
 def test_get_document_pdf_refuses_204_and_non_pdf(tmp_path, fake_http, caplog):

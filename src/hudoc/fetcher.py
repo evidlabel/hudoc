@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 import subprocess
 import tempfile
@@ -11,6 +12,7 @@ from bs4 import BeautifulSoup
 
 HTTP_TIMEOUT = 10  # seconds, for per-document text fetches
 PDF_TIMEOUT = 60  # seconds, a judgment PDF can be several MB
+PDF_TRAILER_WINDOW = 1024  # bytes searched for the %%EOF trailer
 
 
 @dataclass
@@ -84,7 +86,9 @@ def _element_text(element):
 
 def _table_row_text(row):
     """One table row as a single line: ``Application No. | 12345/20``."""
-    cells = [_element_text(cell) for cell in row.find_all(["th", "td"], recursive=False)]
+    cells = [
+        _element_text(cell) for cell in row.find_all(["th", "td"], recursive=False)
+    ]
     return " | ".join(cell for cell in cells if cell)
 
 
@@ -164,11 +168,37 @@ def get_document_text(doc_id, base_url, library, rss_link=None, conversion_delay
     return None
 
 
+def _has_pdf_trailer(content, window=PDF_TRAILER_WINDOW):
+    """A real PDF ends with ``%%EOF``; a proxy fragment or interrupted body does not."""
+    return b"%%EOF" in content[-window:]
+
+
+def is_complete_pdf(path, window=PDF_TRAILER_WINDOW):
+    """True when ``path`` holds a whole PDF: a ``%PDF`` header and a ``%%EOF`` trailer.
+
+    Only the head and the last kilobyte are read — a judgment PDF can be several
+    MB and this runs once per item on every run.
+    """
+    try:
+        with open(path, "rb") as handle:
+            if not handle.read(5).startswith(b"%PDF"):
+                return False
+            handle.seek(0, os.SEEK_END)
+            handle.seek(max(handle.tell() - window, 0))
+            return b"%%EOF" in handle.read()
+    except OSError:
+        return False
+
+
 def get_document_pdf(url, path, timeout=PDF_TIMEOUT):
     """Save the PDF at ``url`` to ``path``; return ``path``, or None on failure.
 
-    Refuses any body that does not start with ``%PDF``, such as a challenge page.
+    Refuses any body that does not start with ``%PDF``, such as a challenge page,
+    and any body without a ``%%EOF`` trailer, which is a truncated download.
     HUDOC answers 204 with no body for an item id it does not have.
+
+    The body is written beside the target and renamed with ``os.replace``, so an
+    interrupted write can never leave a short file at ``path``.
     """
     response = http_get(url, timeout)
     if response.status == 204:
@@ -177,9 +207,27 @@ def get_document_pdf(url, path, timeout=PDF_TIMEOUT):
         logging.error(f"Failed to fetch {url}: {response.reason()}")
     elif not response.content.startswith(b"%PDF"):
         logging.error(f"Not a PDF from {url}: {response.content[:60]!r}")
+    elif not _has_pdf_trailer(response.content):
+        logging.error(
+            f"Truncated PDF from {url}: {len(response.content)} bytes without a "
+            f"%%EOF trailer; not saving"
+        )
     else:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(response.content)
+        tmp = path.with_name(f"{path.name}.part")
+        try:
+            with open(tmp, "wb") as handle:
+                handle.write(response.content)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(tmp, path)
+        except OSError as e:
+            logging.error(f"Failed to save {path}: {e!s}")
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+            return None
         return path
     return None

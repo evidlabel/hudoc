@@ -3,7 +3,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from ..fetcher import get_document_pdf, get_document_text
+from ..fetcher import get_document_pdf, get_document_text, is_complete_pdf
 from ..writer import safe_name, save_text
 from .constants import SUBSITE_CONFIG, pdf_url
 from .parser import parse_rss_file, parse_rss_url
@@ -41,10 +41,12 @@ def download_pdfs(subsite, items, output_dir, delay=3.0):
     for item in items:
         doc_id = item["doc_id"]
         path = Path(output_dir) / f"{subsite}_{safe_name(doc_id)}.pdf"
-        if path.is_file() and path.read_bytes()[:4] == b"%PDF":
-            logging.info(f"{path} is already there")
-            saved.append(path)
-            continue
+        if path.is_file():
+            if is_complete_pdf(path):
+                logging.info(f"{path} is already there")
+                saved.append(path)
+                continue
+            logging.warning(f"{path} is incomplete (no %%EOF trailer); re-fetching")
         if fetched and delay > 0:
             time.sleep(delay)  # HUDOC asks for a pause between requests
         fetched = True
