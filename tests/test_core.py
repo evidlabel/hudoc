@@ -359,6 +359,36 @@ def test_pdf_url_quotes_the_id():
     )
 
 
+def test_page_text_keeps_repeated_text_and_extracts_tables():
+    """Repeated headings/paragraphs are content, not duplicates; tables survive."""
+    from hudoc.fetcher import _page_text
+
+    html = """
+    <html><body>
+      <h2>THE FACTS</h2>
+      <p>The applicant complained under Article 8.</p>
+      <table>
+        <tr><th>Application No.</th><td>12345/20</td></tr>
+        <tr><td>Importance</td><td>High</td></tr>
+      </table>
+      <h2>THE FACTS</h2>
+      <p>The applicant complained under Article 8.</p>
+      <div><p>Nested paragraph in a div</p></div>
+      <div>Text in a bare div</div>
+    </body></html>
+    """
+    assert _page_text(html).split("\n\n") == [
+        "THE FACTS",
+        "The applicant complained under Article 8.",
+        "Application No. | 12345/20",
+        "Importance | High",
+        "THE FACTS",
+        "The applicant complained under Article 8.",
+        "Nested paragraph in a div",
+        "Text in a bare div",
+    ]
+
+
 def test_process_rss_echr(tmp_path, fake_http):
     """Test processing an ECHR RSS file with pre-downloaded content."""
     rss_file = Path("tests/data/echr_rss.xml")

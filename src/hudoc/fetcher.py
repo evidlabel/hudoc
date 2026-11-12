@@ -74,19 +74,58 @@ def trigger_document_conversion(rss_link, doc_id):
     return False
 
 
+# Block-level text containers, in the order a judgment uses them.
+_BLOCK_TAGS = ("p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre")
+
+
+def _element_text(element):
+    return element.get_text(separator=" ", strip=True)
+
+
+def _table_row_text(row):
+    """One table row as a single line: ``Application No. | 12345/20``."""
+    cells = [_element_text(cell) for cell in row.find_all(["th", "td"], recursive=False)]
+    return " | ".join(cell for cell in cells if cell)
+
+
 def _page_text(html):
+    """The page's text in document order, with tables kept as row lines.
+
+    Duplicates are suppressed by *node identity* (an element already emitted
+    through an ancestor or a table row), never by string equality: a judgment
+    legitimately repeats headings, section labels and boilerplate paragraphs,
+    and dropping the later copies silently breaks the verbatim contract.
+    """
     soup = BeautifulSoup(html, "html.parser")
     for script in soup(["script", "style"]):
         script.extract()
 
-    # Extract text from top-level text containers, avoiding nested duplicates
-    seen_texts = set()
     text_lines = []
-    for element in soup.find_all(["p", "li", "h1", "h2", "h3"]):
-        text = element.get_text(separator=" ", strip=True)
-        if text and text not in seen_texts:
-            seen_texts.add(text)
-            text_lines.append(text)
+    seen_nodes = set()
+
+    def emit(element, text):
+        if not text or id(element) in seen_nodes:
+            return
+        seen_nodes.add(id(element))
+        text_lines.append(text)
+
+    for element in soup.find_all(list(_BLOCK_TAGS) + ["tr", "div"]):
+        if id(element) in seen_nodes:
+            continue
+        if element.name == "tr":
+            # A row is emitted whole; its cells are skipped as table descendants.
+            emit(element, _table_row_text(element))
+            continue
+        if element.find_parent("table") is not None:
+            continue
+        if element.name == "div":
+            # Fallback for text that sits in bare <div>s: only emit a div that
+            # does not contain other extractable blocks (no double capture).
+            if element.find(list(_BLOCK_TAGS) + ["div", "table"]) is not None:
+                continue
+        elif element.find_parent(_BLOCK_TAGS) is not None:
+            continue
+        emit(element, _element_text(element))
 
     # Join paragraphs with double newlines for readability
     return "\n\n".join(text_lines)
